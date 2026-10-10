@@ -38,3 +38,19 @@ test('подписка: истёкшая не принимает новые за
   assert.strictEqual(canAcceptBookings({ subscription: { status: 'active', paidUntil: past } }, now), false);
   assert.strictEqual(canAcceptBookings({ subscription: { status: 'expired', paidUntil: future } }, now), false);
 });
+
+test('продление подписки: от даты окончания, если она в будущем, иначе от сегодня', () => {
+  const { extendedUntil, daysLeft } = require('../services/subscription');
+  const { local } = require('../utils/time');
+  const now = new Date('2026-10-12T05:00:00Z'); // 12.10 10:00 по Ташкенту
+  const fmt = (d) => local(d).format('YYYY-MM-DD HH:mm');
+  // ещё 5 дней подписки → +30 от 17.10
+  assert.strictEqual(fmt(extendedUntil(new Date('2026-10-17T18:59:59Z'), 30, now)), '2026-11-16 23:59');
+  // уже истекла → +30 от сегодня
+  assert.strictEqual(fmt(extendedUntil(new Date('2026-10-01T00:00:00Z'), 30, now)), '2026-11-11 23:59');
+  // не было даты (не должно случаться) → от сегодня
+  assert.strictEqual(fmt(extendedUntil(undefined, 7, now)), '2026-10-19 23:59');
+  // дни до конца по календарю Ташкента
+  assert.strictEqual(daysLeft(new Date('2026-10-15T18:59:59Z'), now), 3);
+  assert.strictEqual(daysLeft(new Date('2026-10-12T18:59:59Z'), now), 0);
+});

@@ -50,7 +50,7 @@ test('все ключи из кода есть в ru', () => {
   for (const file of files) {
     const src = fs.readFileSync(file, 'utf8');
     // только литеральные ключи; ключи с `${...}` проверяются отдельными тестами
-    for (const m of src.matchAll(/\bt\((?:\w+,\s*)?'([\w.]+)'/g)) {
+    for (const m of src.matchAll(/\bt\((?:(?:\w+|'\w+'),\s*)?'([\w.]+)'/g)) {
       if (lookup(LOCALES.ru, m[1]) === undefined) missing.push(`${path.relative(root, file)}: ${m[1]}`);
     }
   }

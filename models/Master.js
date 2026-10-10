@@ -61,6 +61,8 @@ const masterSchema = new Schema({
   subscription: {
     status: { type: String, enum: ['trial', 'active', 'expired'], default: 'trial' },
     paidUntil: Date,
+    // какое напоминание о конце подписки уже отправлено: 'YYYY-MM-DD:3' / 'YYYY-MM-DD:1'
+    lastReminder: { type: String, default: '' },
   },
   // Регистрация идёт по шагам; клиенты видят мастера только после registered = true
   registered: { type: Boolean, default: false },

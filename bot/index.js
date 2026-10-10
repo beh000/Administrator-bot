@@ -7,6 +7,8 @@ const common = require('./common');
 const master = require('./master');
 const client = require('./client');
 const reminders = require('./reminders');
+const admin = require('./admin');
+const { config } = require('../config');
 
 function createBot(token) {
   const bot = new Bot(token);
@@ -42,6 +44,7 @@ function createBot(token) {
   bot.callbackQuery('noop', () => {});
 
   bot.use(common.composer);
+  bot.use(admin.composer);
   bot.use(master);
   bot.use(reminders.composer);
   bot.use(client.composer);
@@ -80,6 +83,19 @@ async function setCommands(bot) {
   ];
   await bot.api.setMyCommands(commands('ru'));
   await Promise.all(LANGS.map((lang) => bot.api.setMyCommands(commands(lang), { language_code: lang })));
+  // Админу — дополнительные команды в его чате
+  if (config.ADMIN_ID) {
+    const adminCommands = [
+      ...commands('ru'),
+      { command: 'admin', description: t('ru', 'commands.admin') },
+      { command: 'extend', description: t('ru', 'commands.extend') },
+      { command: 'broadcast', description: t('ru', 'commands.broadcast') },
+    ];
+    await bot.api.setMyCommands(adminCommands, { scope: { type: 'chat', chat_id: config.ADMIN_ID } }).catch((err) => {
+      // админ ещё не писал боту — чат не найден; команды всё равно работают
+      console.warn('[bot] Не удалось задать команды админа:', err.description || err.message);
+    });
+  }
 }
 
 module.exports = { createBot, setCommands };
