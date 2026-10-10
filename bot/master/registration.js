@@ -126,7 +126,7 @@ async function finish(ctx) {
   };
   await m.save();
   clearStep(ctx);
-  await show(ctx, ctx.t('reg.done', { name: esc(m.name), days: config.TRIAL_DAYS }));
+  await show(ctx, `${ctx.t('reg.done', { name: esc(m.name), days: config.TRIAL_DAYS })}\n\n${ctx.t('loc.regHint')}`);
   await require('./link').sendLink(ctx);
   return require('./menu').show(ctx, { fresh: true });
 }

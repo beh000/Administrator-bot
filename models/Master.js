@@ -41,6 +41,12 @@ const masterSchema = new Schema({
   services: { type: [serviceSchema], default: [] },
   schedule: { type: scheduleSchema, default: () => ({}) },
   daysOff: { type: [String], default: [] }, // локальные даты Ташкента 'YYYY-MM-DD'
+  // Где принимает мастер: текст адреса и/или точка на карте (всё необязательно)
+  location: {
+    address: { type: String, default: '' },
+    lat: Number,
+    lng: Number,
+  },
   slotStepMin: { type: Number, default: 30 },
   bufferMin: { type: Number, default: 0 },
   bookingHorizonDays: { type: Number, default: 14 },

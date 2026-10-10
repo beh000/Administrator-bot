@@ -17,6 +17,7 @@ const masterOnly = composer.filter((ctx) => !!ctx.master);
   require('./bookings'),
   require('./subscription'),
   require('./payments'),
+  require('./location'),
 ].forEach((mod) => masterOnly.use(mod.composer));
 
 module.exports = composer;

@@ -5,6 +5,7 @@ const { t } = require('../../locales');
 const { cancelByClient, canClientChange } = require('../../services/booking');
 const { show, alert, esc, fmtMoney, fmtDay, fmtTime } = require('../ui');
 const { sendTo } = require('../notify');
+const { addressLine, hasGeo, sendMasterLocation } = require('../location');
 
 const composer = new Composer();
 
@@ -38,7 +39,7 @@ async function showList(ctx) {
 
 async function findOwn(ctx, id) {
   if (!/^[0-9a-f]{24}$/.test(id)) return null;
-  return Booking.findOne({ _id: id, clientId: ctx.user._id }).populate('masterId', 'name phone prepayment');
+  return Booking.findOne({ _id: id, clientId: ctx.user._id }).populate('masterId', 'name phone prepayment location');
 }
 
 async function showCard(ctx, id) {
@@ -72,12 +73,19 @@ async function showCard(ctx, id) {
   if (awaitingPayment) kb.text(ctx.t('client.paidBtn'), `c:paid:${b._id}`).row();
   if (changeable && b.status === 'confirmed') kb.text(ctx.t('client.rescheduleBtn'), `c:rs:${b._id}`).row();
   if (changeable) kb.text(ctx.t('client.cancelBtn'), `c:cx:${b._id}`).row();
+  if (active && hasGeo(master)) kb.text(ctx.t('loc.showMap'), `c:loc:${master._id}`).row();
   if (master._id) kb.text(ctx.t('client.bookAgain'), `c:new:${master._id}`).row();
   kb.text(ctx.t('common.back'), 'c:my');
-  return show(ctx, lines.join('\n'), kb);
+  return show(ctx, lines.join('\n') + (active ? addressLine(ctx.t, master) : ''), kb);
 }
 
 composer.callbackQuery('c:my', (ctx) => showList(ctx));
+
+// Точка мастера на карте
+composer.callbackQuery(/^c:loc:([0-9a-f]{24})$/, async (ctx) => {
+  const master = await Master.findById(ctx.match[1], 'name location');
+  if (master) await sendMasterLocation(ctx.api, ctx.chat.id, master);
+});
 composer.callbackQuery(/^c:b:(\w+)$/, (ctx) => showCard(ctx, ctx.match[1]));
 
 // Записаться к этому мастеру ещё раз

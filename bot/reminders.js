@@ -8,6 +8,7 @@ const r = require('../services/reminders');
 const { alert, esc, fmtDay, fmtTime } = require('./ui');
 const { sendTo } = require('./notify');
 const { listText } = require('./master/bookings');
+const { addressLine, sendMasterLocation } = require('./location');
 
 const composer = new Composer();
 
@@ -43,7 +44,9 @@ async function sendClientReminder(api, b, kind) {
   }
   await sendTo(api, client.telegramId, lang, kind === 'dayBefore' ? 'rem.dayBefore' : 'rem.twoHours', params, {
     reply_markup: kb,
+    append: addressLine(tr(lang), master),
   });
+  if (kind === 'twoHours') await sendMasterLocation(api, client.telegramId, master);
 }
 
 // --- Мастеру: клиент не подтвердил; клиент пришёл? ---

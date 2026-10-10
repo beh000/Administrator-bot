@@ -13,6 +13,7 @@ const { defineStep, setStep, clearStep } = require('../steps');
 const { show, prompt, alert, esc, fmtMoney, fmtDay, fmtTime, BASE_OPTS } = require('../ui');
 const { sendTo } = require('../notify');
 const my = require('./my');
+const { addressLine, sendMasterLocation } = require('../location');
 const payment = require('./payment');
 
 const composer = new Composer();
@@ -254,7 +255,8 @@ composer.callbackQuery(/^c:ok:(\w+):(\d+)$/, async (ctx) => {
     price: fmtMoney(booking.price),
   };
   const kb = new InlineKeyboard().text(ctx.t('client.myButton'), 'c:my');
-  await show(ctx, ctx.t(previous ? 'client.rescheduled' : 'client.booked', params), kb);
+  await show(ctx, ctx.t(previous ? 'client.rescheduled' : 'client.booked', params) + addressLine(ctx.t, master), kb);
+  await sendMasterLocation(ctx.api, ctx.chat.id, master);
 
   // Уведомление мастеру — на его языке
   const lang = master.language;

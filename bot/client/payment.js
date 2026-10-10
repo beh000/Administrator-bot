@@ -7,6 +7,7 @@ const { formatCard } = require('../../utils/validate');
 const { submitScreenshot, latestAwaitingPayment } = require('../../services/payments');
 const { defineStep, setStep, clearStep } = require('../steps');
 const { show, prompt, alert, esc, fmtMoney, fmtDay, fmtTime } = require('../ui');
+const { addressLine } = require('../location');
 
 const composer = new Composer();
 
@@ -29,7 +30,7 @@ function showPaymentInfo(ctx, booking, master) {
     .text(ctx.t('client.paidBtn'), `c:paid:${booking._id}`)
     .row()
     .text(ctx.t('client.myButton'), 'c:my');
-  return show(ctx, ctx.t('client.payInfo', paymentParams(ctx, booking, master)), kb);
+  return show(ctx, ctx.t('client.payInfo', paymentParams(ctx, booking, master)) + addressLine(ctx.t, master), kb);
 }
 
 // Отправить скриншот мастеру и сообщить клиенту

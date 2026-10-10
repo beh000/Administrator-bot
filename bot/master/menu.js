@@ -24,6 +24,8 @@ function show(ctx, opts = {}) {
     .text(ctx.t('menu.schedule'), 'sch:list')
     .row()
     .text(ctx.t('menu.prepayment'), 'pp:show')
+    .text(ctx.t('menu.location'), 'loc:show')
+    .row()
     .text(ctx.t('menu.link'), 'm:link')
     .row()
     .text(ctx.t('menu.subscription'), 'm:sub')
