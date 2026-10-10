@@ -6,12 +6,27 @@ const { createBot, setCommands } = require('./bot');
 process.on('unhandledRejection', (err) => console.error('[process] unhandledRejection:', err));
 process.on('uncaughtException', (err) => console.error('[process] uncaughtException:', err));
 
+// MongoDB по умолчанию не строит индексы, если на диске меньше 500 МБ свободно.
+// На маленьком томе (бесплатный Railway — 500 МБ всего) это условие невыполнимо,
+// поэтому при такой ошибке снижаем порог и пробуем ещё раз.
+async function syncIndexes() {
+  try {
+    await mongoose.syncIndexes();
+  } catch (err) {
+    const outOfDisk = Object.values(err.errors || {}).some((e) => e.code === 14031) || err.code === 14031;
+    if (!outOfDisk) throw err;
+    console.warn('[db] Мало места для индексов, снижаю indexBuildMinAvailableDiskSpaceMB до 50 МБ');
+    await mongoose.connection.db.admin().command({ setParameter: 1, indexBuildMinAvailableDiskSpaceMB: 50 });
+    await mongoose.syncIndexes();
+  }
+}
+
 async function main() {
   assertConfig();
 
   await mongoose.connect(config.MONGODB_URI);
   console.log('[db] MongoDB подключена');
-  await mongoose.syncIndexes();
+  await syncIndexes();
 
   const bot = createBot(config.BOT_TOKEN);
   await bot.init();
