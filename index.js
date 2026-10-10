@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const { config, assertConfig } = require('./config');
 const { createBot, setCommands } = require('./bot');
+const { startJobs } = require('./bot/jobs');
 
 // Бот не должен падать из-за случайной ошибки — логируем и работаем дальше
 process.on('unhandledRejection', (err) => console.error('[process] unhandledRejection:', err));
@@ -31,6 +32,7 @@ async function main() {
   const bot = createBot(config.BOT_TOKEN);
   await bot.init();
   await setCommands(bot).catch((err) => console.error('[bot] Не удалось установить команды:', err.message));
+  startJobs(bot);
 
   const stop = async () => {
     await bot.stop();

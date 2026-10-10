@@ -38,7 +38,7 @@ async function showList(ctx) {
 
 async function findOwn(ctx, id) {
   if (!/^[0-9a-f]{24}$/.test(id)) return null;
-  return Booking.findOne({ _id: id, clientId: ctx.user._id }).populate('masterId', 'name phone');
+  return Booking.findOne({ _id: id, clientId: ctx.user._id }).populate('masterId', 'name phone prepayment');
 }
 
 async function showCard(ctx, id) {
@@ -58,10 +58,18 @@ async function showCard(ctx, id) {
       status: ctx.t(`status.${b.status}`),
     }),
   ];
-  if (b.prepaymentAmount > 0) lines.push(ctx.t('client.cardPrepaid', { amount: fmtMoney(b.prepaymentAmount) }));
+  const awaitingPayment = b.status === 'pending_payment' && b.paymentDeadline > new Date();
+  if (awaitingPayment) {
+    lines.push('', ctx.t('client.cardPayDetails', require('./payment').paymentParams(ctx, b, master)));
+  } else if (b.status === 'payment_review') {
+    lines.push('', ctx.t('client.cardReview'));
+  } else if (b.prepaymentAmount > 0 && b.status === 'confirmed') {
+    lines.push(ctx.t('client.cardPrepaid', { amount: fmtMoney(b.prepaymentAmount) }));
+  }
   if (active && !changeable) lines.push('', ctx.t('client.tooLateNote'));
 
   const kb = new InlineKeyboard();
+  if (awaitingPayment) kb.text(ctx.t('client.paidBtn'), `c:paid:${b._id}`).row();
   if (changeable && b.status === 'confirmed') kb.text(ctx.t('client.rescheduleBtn'), `c:rs:${b._id}`).row();
   if (changeable) kb.text(ctx.t('client.cancelBtn'), `c:cx:${b._id}`).row();
   if (master._id) kb.text(ctx.t('client.bookAgain'), `c:new:${master._id}`).row();
@@ -101,11 +109,14 @@ composer.callbackQuery(/^c:cy:([0-9a-f]{24})$/, async (ctx) => {
   }
   const b = result.booking;
   const master = await Master.findById(b.masterId);
-  const text = [ctx.t('client.cancelled')];
-  if (b.prepaymentAmount > 0 && master) text.push('', ctx.t('client.cancelledPrepaid', { phone: esc(master.phone) }));
+  const text = [ctx.t(result.previousStatus === 'pending_payment' ? 'client.cancelledUnpaid' : 'client.cancelled')];
+  // предоплата могла быть уже переведена: на проверке или подтверждена
+  const paid = b.prepaymentAmount > 0 && result.previousStatus !== 'pending_payment';
+  if (paid && master) text.push('', ctx.t('client.cancelledPrepaid', { phone: esc(master.phone) }));
   await show(ctx, text.join('\n'), new InlineKeyboard().text(ctx.t('client.myButton'), 'c:my'));
 
-  if (master) {
+  // о неоплаченной записи мастер ещё не знал — не беспокоим
+  if (master && result.previousStatus !== 'pending_payment') {
     const lang = master.language;
     await sendTo(ctx.api, master.telegramId, lang, 'notify.cancelled', {
       client: esc(ctx.user.name),

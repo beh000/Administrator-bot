@@ -55,6 +55,8 @@ function canClientChange(booking, now = new Date()) {
  * подтверждённая предоплата переходит на новую запись.
  */
 async function createBooking({ master, client, service, start, rescheduleFrom = null }) {
+  // Предоплата: при переносе уже внесена, иначе — по настройке мастера / неявкам
+  const prepay = !rescheduleFrom && needsPrepayment(master, client);
   return withMasterLock(master._id, async () => {
     let previous = null;
     if (rescheduleFrom) {
@@ -84,10 +86,11 @@ async function createBooking({ master, client, service, start, rescheduleFrom = 
       end: new Date(startDate.getTime() + service.durationMin * 60_000),
       price: service.price,
       // при переносе предоплата уже внесена — запись сразу подтверждена
-      prepaymentAmount: previous ? previous.prepaymentAmount : 0,
+      prepaymentAmount: previous ? previous.prepaymentAmount : prepay ? master.prepayment.amount : 0,
       paymentScreenshotFileId: previous ? previous.paymentScreenshotFileId : undefined,
       rescheduledFrom: previous ? previous._id : undefined,
-      status: 'confirmed',
+      status: prepay ? 'pending_payment' : 'confirmed',
+      paymentDeadline: prepay ? new Date(Date.now() + (master.prepayment.timeoutMin || 30) * 60_000) : undefined,
     });
     if (previous) {
       previous.status = 'cancelled_by_client';
@@ -113,7 +116,7 @@ async function cancelByClient(bookingId, client) {
     { returnDocument: 'after' },
   );
   if (!updated) return { ok: false, reason: 'not_found' };
-  return { ok: true, booking: updated };
+  return { ok: true, booking: updated, previousStatus: booking.status };
 }
 
 module.exports = {

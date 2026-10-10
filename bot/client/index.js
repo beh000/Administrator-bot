@@ -13,6 +13,7 @@ const { defineStep, setStep, clearStep } = require('../steps');
 const { show, prompt, alert, esc, fmtMoney, fmtDay, fmtTime, BASE_OPTS } = require('../ui');
 const { sendTo } = require('../notify');
 const my = require('./my');
+const payment = require('./payment');
 
 const composer = new Composer();
 
@@ -174,8 +175,12 @@ function showConfirm(ctx, master, service, start) {
     .text(ctx.t('client.confirmBtn'), `c:ok:${service.id}:${epochMin}`)
     .row()
     .text(ctx.t('common.back'), `c:d:${service.id}:${day}`);
-  const key = ctx.session.booking?.rescheduleFrom ? 'client.confirmReschedule' : 'client.confirm';
-  return show(ctx, ctx.t(key, params), kb);
+  const reschedule = !!ctx.session.booking?.rescheduleFrom;
+  let text = ctx.t(reschedule ? 'client.confirmReschedule' : 'client.confirm', params);
+  if (!reschedule && needsPrepayment(master, ctx.user)) {
+    text += `\n\n${ctx.t('client.confirmPrepay', { amount: fmtMoney(master.prepayment.amount), minutes: master.prepayment.timeoutMin || 30 })}`;
+  }
+  return show(ctx, text, kb);
 }
 
 // Достаёт мастера и услугу для кнопок c:s / c:d / c:t / c:ok
@@ -223,10 +228,7 @@ composer.callbackQuery(/^c:ok:(\w+):(\d+)$/, async (ctx) => {
   const start = new Date(Number(ctx.match[2]) * 60_000);
   const { rescheduleFrom } = ctx.session.booking;
 
-  if (!rescheduleFrom) {
-    if (!canAcceptBookings(master)) return unavailable(ctx, master);
-    if (needsPrepayment(master, ctx.user)) return alert(ctx, ctx.t('client.prepaymentSoon'));
-  }
+  if (!rescheduleFrom && !canAcceptBookings(master)) return unavailable(ctx, master);
 
   const result = await createBooking({ master, client: ctx.user, service, start, rescheduleFrom });
   if (!result.ok) {
@@ -240,6 +242,9 @@ composer.callbackQuery(/^c:ok:(\w+):(\d+)$/, async (ctx) => {
 
   const { booking, previous } = result;
   ctx.session.booking = { masterId: String(master._id) };
+
+  // Нужна предоплата: показываем реквизиты мастера, мастер узнает о записи вместе со скриншотом
+  if (booking.status === 'pending_payment') return payment.showPaymentInfo(ctx, booking, master);
   const params = {
     master: esc(master.name),
     phone: esc(master.phone),
@@ -276,5 +281,6 @@ function home(ctx) {
 }
 
 composer.use(my.composer);
+composer.use(payment.composer);
 
 module.exports = { composer, openMaster, home, continueBooking };
