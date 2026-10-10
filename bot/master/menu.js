@@ -27,7 +27,9 @@ function show(ctx, opts = {}) {
     .text(ctx.t('menu.link'), 'm:link')
     .row()
     .text(ctx.t('menu.subscription'), 'm:sub')
-    .text(ctx.t('menu.language'), 'nav:lang');
+    .text(ctx.t('menu.language'), 'nav:lang')
+    .row()
+    .text(ctx.t('menu.myAsClient'), 'c:my');
   return showScreen(ctx, text, kb, opts);
 }
 

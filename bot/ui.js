@@ -1,5 +1,6 @@
 // Общие помощники интерфейса: экранирование, вывод экранов, форматирование.
 const { InlineKeyboard } = require('grammy');
+const { local, weekdayKey } = require('../utils/time');
 
 function esc(s) {
   return String(s ?? '')
@@ -54,4 +55,14 @@ async function alert(ctx, text) {
   }
 }
 
-module.exports = { esc, fmtMoney, show, prompt, footer, alert, BASE_OPTS };
+// Дата для людей: «Пн, 12.10» (по Ташкенту)
+function fmtDay(t, date) {
+  const d = local(date);
+  return `${t(`days.short.${weekdayKey(d)}`)}, ${d.format('DD.MM')}`;
+}
+
+function fmtTime(date) {
+  return local(date).format('HH:mm');
+}
+
+module.exports = { esc, fmtMoney, fmtDay, fmtTime, show, prompt, footer, alert, BASE_OPTS };

@@ -59,6 +59,8 @@ const masterSchema = new Schema({
   // Регистрация идёт по шагам; клиенты видят мастера только после registered = true
   registered: { type: Boolean, default: false },
   regStep: { type: String, default: 'name' }, // name | phone | services | schedule | prepayment | done
+  // Короткая блокировка на время создания записи (защита от двойного бронирования)
+  bookingLockUntil: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now },
 });
 
