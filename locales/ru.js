@@ -275,4 +275,26 @@ module.exports = {
     rejectedMark: '❌ Оплата не найдена — запись отменена, время свободно.',
     notActive: 'Эта запись уже не ждёт проверки оплаты.',
   },
+
+  rem: {
+    today: 'сегодня',
+    tomorrow: 'завтра',
+    dayBefore: '⏰ <b>Напоминание о записи</b>\n\n{when} в <b>{time}</b> — {service}\nМастер: {master}\n\nПодтвердите, что придёте, или перенесите запись, если планы изменились.',
+    twoHours: '⏰ <b>Через 2 часа — ваша запись</b>\n\n{when} в <b>{time}</b> — {service}\nМастер: {master}, {phone}',
+    comeBtn: '✅ Приду',
+    thanks: 'Спасибо! Мастер ждёт вас.',
+    confirmedMark: '✅ Вы подтвердили, что придёте.',
+    alreadyHandled: 'Эта запись уже неактуальна.',
+    unconfirmed: '⚠️ <b>Клиент не подтвердил запись</b>\n\n{client}, {phone}\n{service} — {when} в {time}\n\nЛучше позвонить и уточнить.',
+    morning: '☀️ <b>Доброе утро!</b>\n\n{list}',
+  },
+
+  att: {
+    ask: '❓ <b>Клиент пришёл?</b>\n\n{client}, {phone}\n{service}\n{date}, {time}',
+    yes: '✅ Пришёл',
+    no: '🚫 Не пришёл',
+    markCompleted: '✅ Отмечено: клиент пришёл.',
+    markNoShow: '🚫 Отмечено: клиент не пришёл.',
+    prepayNow: 'У клиента {client} уже {count} неявки — теперь запись к вам для этого клиента только с предоплатой.',
+  },
 };

@@ -276,4 +276,26 @@ module.exports = {
     rejectedMark: '❌ Toʻlov topilmadi — yozilish bekor qilindi, vaqt boʻsh.',
     notActive: 'Bu yozilish endi toʻlov tekshiruvini kutmayapti.',
   },
+
+  rem: {
+    today: 'bugun',
+    tomorrow: 'ertaga',
+    dayBefore: '⏰ <b>Yozilish haqida eslatma</b>\n\n{when} soat <b>{time}</b> da — {service}\nUsta: {master}\n\nKelishingizni tasdiqlang yoki rejalaringiz oʻzgargan boʻlsa, yozilishni koʻchiring.',
+    twoHours: '⏰ <b>2 soatdan keyin — yozilishingiz</b>\n\n{when} soat <b>{time}</b> da — {service}\nUsta: {master}, {phone}',
+    comeBtn: '✅ Kelaman',
+    thanks: 'Rahmat! Usta sizni kutadi.',
+    confirmedMark: '✅ Kelishingizni tasdiqladingiz.',
+    alreadyHandled: 'Bu yozilish endi dolzarb emas.',
+    unconfirmed: '⚠️ <b>Mijoz yozilishni tasdiqlamadi</b>\n\n{client}, {phone}\n{service} — {when} soat {time} da\n\nQoʻngʻiroq qilib aniqlashtirgan maʼqul.',
+    morning: '☀️ <b>Xayrli tong!</b>\n\n{list}',
+  },
+
+  att: {
+    ask: '❓ <b>Mijoz keldimi?</b>\n\n{client}, {phone}\n{service}\n{date}, {time}',
+    yes: '✅ Keldi',
+    no: '🚫 Kelmadi',
+    markCompleted: '✅ Belgilandi: mijoz keldi.',
+    markNoShow: '🚫 Belgilandi: mijoz kelmadi.',
+    prepayNow: '{client} allaqachon {count} marta kelmagan — endi u sizga faqat oldindan toʻlov bilan yozila oladi.',
+  },
 };

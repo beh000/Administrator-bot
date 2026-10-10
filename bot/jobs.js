@@ -6,6 +6,7 @@ const { TZ } = require('../utils/time');
 const { expireUnpaid } = require('../services/payments');
 const { esc, fmtDay, fmtTime } = require('./ui');
 const { sendTo } = require('./notify');
+const { runReminders, sendMorningDigest } = require('./reminders');
 
 // Задача не запускается повторно, пока не закончилась предыдущая,
 // и никогда не роняет процесс
@@ -45,6 +46,8 @@ async function expirePayments(api) {
 function startJobs(bot) {
   const opts = { timezone: TZ };
   cron.schedule('* * * * *', guarded('expirePayments', () => expirePayments(bot.api)), opts);
+  cron.schedule('*/5 * * * *', guarded('reminders', () => runReminders(bot.api)), opts);
+  cron.schedule('0 8 * * *', guarded('morningDigest', () => sendMorningDigest(bot.api)), opts);
   console.log('[jobs] Задачи запущены');
 }
 

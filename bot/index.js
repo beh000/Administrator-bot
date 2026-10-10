@@ -6,6 +6,7 @@ const { stepRouter } = require('./steps');
 const common = require('./common');
 const master = require('./master');
 const client = require('./client');
+const reminders = require('./reminders');
 
 function createBot(token) {
   const bot = new Bot(token);
@@ -42,6 +43,7 @@ function createBot(token) {
 
   bot.use(common.composer);
   bot.use(master);
+  bot.use(reminders.composer);
   bot.use(client.composer);
 
   // Текст/контакт/фото — обработчику текущего шага
