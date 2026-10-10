@@ -1,0 +1,211 @@
+// Oʻzbekcha (lotin) matnlar. Kalitlar ru.js bilan bir xil boʻlishi shart —
+// buni tests/locales.test.js tekshiradi.
+module.exports = {
+  lang: {
+    name: '🇺🇿 Oʻzbekcha',
+    choose: '🇺🇿 Tilni tanlang',
+    saved: 'Til saqlandi',
+  },
+
+  commands: {
+    start: 'Boshlash',
+    menu: 'Asosiy menyu',
+    lang: 'Tilni oʻzgartirish',
+  },
+
+  common: {
+    back: '⬅️ Orqaga',
+    cancel: '✖️ Bekor qilish',
+    saved: '✅ Saqlandi',
+    staleButton: 'Bu tugma eskirgan. Menyuni oching: /menu',
+    useMenu: 'Xabaringizni tushunmadim. Menyu tugmalaridan foydalaning.',
+    openMenu: '📋 Menyuni ochish',
+    error: '⚠️ Nimadir xato ketdi. Qaytadan urinib koʻring yoki /menu ni oching',
+    sum: 'soʻm',
+  },
+
+  role: {
+    choose: 'Siz kimsiz?\n\n<b>Usta</b> — mijozlarni qabul qilasiz va onlayn yozilishni xohlaysiz.\n<b>Mijoz</b> — ustaga yozilmoqchisiz.',
+    master: '✂️ Men ustaman',
+    client: '🙋 Men mijozman',
+  },
+
+  menu: {
+    master: '<b>{name}</b>, bu sizning menyungiz.\n{sub}',
+    today: '📅 Bugun',
+    tomorrow: '📅 Ertaga',
+    week: '📅 Hafta',
+    services: '⚙️ Xizmatlar',
+    schedule: '🕐 Ish jadvali',
+    prepayment: '💳 Oldindan toʻlov',
+    link: '🔗 Mening havolam',
+    subscription: '💎 Obuna',
+    language: '🌐 Til',
+  },
+
+  reg: {
+    askName: 'Keling, onlayn yozilishni sozlaymiz. Bu 3–5 daqiqa oladi.\n\n<b>1-qadam (5 tadan).</b> Mijozlar sizni qanday nom bilan koʻrsin? Ismingiz yoki studiya nomini yozing.\n\nMasalan: <i>Malika — tirnoqlar</i>',
+    badName: 'Ism 1 dan 48 belgigacha boʻlishi kerak. Qaytadan urinib koʻring.',
+    askPhone: '<b>2-qadam (5 tadan).</b> Telefon raqamingiz — mijozlar bogʻlanishi kerak boʻlsa, uni koʻradi.\n\nPastdagi tugmani bosing yoki raqamni yozing.',
+    sharePhone: '📱 Kontaktni ulashish',
+    badPhone: 'Bu telefon raqamiga oʻxshamaydi. Misol: +998901234567',
+    phoneSaved: '✅ Telefon saqlandi.\n\n<b>3-qadam (5 tadan).</b> Xizmatlarni qoʻshing.',
+    scheduleStep: '<b>4-qadam (5 tadan).</b> Ish jadvalini belgilang.\n',
+    next: 'Keyingisi ➡️',
+    finish: 'Roʻyxatdan oʻtishni yakunlash ✅',
+    needService: 'Kamida bitta xizmat qoʻshing.',
+    needWorkingDay: 'Kamida bitta ish kunini belgilang.',
+    done: '🎉 Tayyor, {name}! Onlayn yozilish yoqildi.\n\nSinov muddati — {days} kun bepul.',
+  },
+
+  svc: {
+    title: '<b>⚙️ Xizmatlar</b>',
+    empty: 'Hozircha birorta ham xizmat yoʻq.',
+    line: '{title} — {duration} daq — {price} soʻm{off}',
+    offMark: ' (oʻchirilgan)',
+    add: '➕ Xizmat qoʻshish',
+    view: '<b>{title}</b>\n\nDavomiyligi: {duration} daq\nNarxi: {price} soʻm\nHolati: {status}',
+    statusOn: '✅ yoqilgan',
+    statusOff: '⏸ oʻchirilgan — mijozlar uni koʻrmaydi',
+    editTitle: '✏️ Nomi',
+    editDuration: '⏱ Davomiyligi',
+    editPrice: '💰 Narxi',
+    disable: '⏸ Oʻchirish',
+    enable: '▶️ Yoqish',
+    askTitle: 'Xizmat nomini yozing.\n\nMasalan: <i>Qoplamali manikyur</i>',
+    badTitle: 'Nomi 1 dan 48 belgigacha boʻlishi kerak.',
+    askDuration: 'Xizmat necha daqiqa davom etadi? Tanlang yoki raqam yozing.',
+    badDuration: 'Davomiylikni daqiqalarda, 5 dan 720 gacha raqam bilan yozing. Masalan: 75',
+    askPrice: 'Narxi necha soʻm? Raqam yozing.\n\nMasalan: <i>120000</i>',
+    badPrice: 'Narxni harflarsiz, raqam bilan yozing. Masalan: 120000',
+    added: '✅ «{title}» xizmati qoʻshildi.',
+  },
+
+  days: {
+    short: { mon: 'Du', tue: 'Se', wed: 'Ch', thu: 'Pa', fri: 'Ju', sat: 'Sh', sun: 'Ya' },
+    full: {
+      mon: 'Dushanba',
+      tue: 'Seshanba',
+      wed: 'Chorshanba',
+      thu: 'Payshanba',
+      fri: 'Juma',
+      sat: 'Shanba',
+      sun: 'Yakshanba',
+    },
+  },
+
+  sch: {
+    title: '<b>🕐 Ish jadvali</b>',
+    hint: 'Oʻzgartirish uchun kunni bosing.',
+    dayOff: 'dam olish kuni',
+    breaksInline: ' (tanaffus {list})',
+    sameWeekdays: '📋 Barcha ish kunlari uchun bir xil',
+    hours: 'Ish vaqti: {start}–{end}',
+    breaks: 'Tanaffuslar: {list}',
+    noBreaks: 'Tanaffus yoʻq',
+    makeOff: '🚫 Dam olish kuni qilish',
+    makeWorking: '✅ Ish kuni qilish',
+    editHours: '🕐 Vaqtni oʻzgartirish',
+    addBreak: '➕ Tanaffus',
+    clearBreaks: '🗑 Tanaffuslarni olib tashlash',
+    askHours: '{day}: ish boshlanishi va tugashi vaqtini yozing.\n\nMasalan: <i>09:00-19:00</i>',
+    askWeekdays: 'Dushanbadan jumagacha ish vaqti.\n\nMasalan: <i>09:00-19:00</i>',
+    askWeekdaysBreak: 'Ish kunlarida umumiy tanaffus bormi? Vaqtini yozing, masalan <i>13:00-14:00</i>, yoki tugmani bosing.',
+    noBreakButton: 'Tanaffussiz',
+    askBreak: 'Tanaffus vaqtini yozing.\n\nMasalan: <i>13:00-14:00</i>',
+    badRange: 'SS:DD-SS:DD formatida yozing, boshlanishi tugashidan oldin boʻlsin. Masalan: 09:00-19:00',
+    badBreak: 'Tanaffus ish vaqti ichida ({start}–{end}) boʻlishi va boshqa tanaffuslar bilan kesishmasligi kerak.',
+  },
+
+  off: {
+    button: '📅 Dam olish sanalari',
+    title: '<b>📅 Dam olish sanalari</b>\nBu kunlarda yozilish boʻlmaydi.',
+    empty: 'Alohida dam olish kunlari yoʻq.',
+    add: '➕ Sana qoʻshish',
+    ask: 'Dam olish sanasini yozing.\n\nMasalan: <i>25.12</i> yoki <i>25.12.2026</i>',
+    badDate: 'Sanani tushunmadim yoki u oʻtib ketgan. Format: KK.OO yoki KK.OO.YYYY',
+    added: '✅ {date} — dam olish kuni.',
+    addedWithBookings: '✅ {date} — dam olish kuni.\n\n⚠️ Bu kunga allaqachon yozilganlar bor: {count}. Ular bekor qilinmadi — mijozlar bilan bogʻlaning.',
+  },
+
+  set: {
+    button: '⚙️ Yozilish sozlamalari',
+    title:
+      '<b>⚙️ Yozilish sozlamalari</b>\n\nVaqt qadami: {step}\nMijozlar orasidagi tanaffus: {buf}\nOldindan yozilish: {hor}\nYozilishgacha eng kam vaqt: {ntc}',
+    label: {
+      step: 'Vaqt qadami (09:00, 09:30…)',
+      buf: 'Mijozlar orasidagi tanaffus',
+      hor: 'Necha kun oldinga',
+      ntc: 'Yozilishgacha eng kam vaqt',
+    },
+    minutes: '{n} daq',
+    hours: '{n} soat',
+    days: '{n} kun',
+  },
+
+  pp: {
+    askNeed:
+      '<b>5-qadam (5 tadan). Oldindan toʻlov</b>\n\nOldindan toʻlov kelmay qolishlardan himoya qiladi: mijoz summaning bir qismini kartangizga oʻtkazadi va skrinshot yuboradi, siz tasdiqlaysiz.\n\nPul toʻgʻridan-toʻgʻri sizga tushadi — bot uni qabul qilmaydi.\n\nOldindan toʻlov kerakmi?',
+    yes: '✅ Ha, kerak',
+    no: '➡️ Yoʻq, oldindan toʻlovsiz',
+    off: '<b>💳 Oldindan toʻlov oʻchirilgan</b>\n\nMijozlar toʻlovsiz yoziladi.',
+    on: '<b>💳 Oldindan toʻlov yoqilgan</b>\n\nSumma: {amount} soʻm\nKarta: <code>{card}</code>\nEgasi: {holder}\nMijozga toʻlov uchun: {timeout} daq',
+    enable: '✅ Oldindan toʻlovni yoqish',
+    disable: '🚫 Oʻchirish',
+    editAmount: '💰 Summa',
+    editCard: '💳 Karta',
+    editHolder: '👤 Karta egasi',
+    askAmount: 'Oldindan toʻlov summasi necha soʻm?\n\nMasalan: <i>30000</i>',
+    badAmount: 'Summani noldan katta raqam bilan yozing. Masalan: 30000',
+    askCard: 'Mijozlar oldindan toʻlovni oʻtkazadigan karta raqami (16 ta raqam).',
+    badCard: 'Karta raqami — aniq 16 ta raqam. Masalan: 8600 1234 5678 9012',
+    askHolder: 'Karta egasining ismi — mijoz pul oʻtkazayotganda shuni koʻradi.',
+    badHolder: 'Ism 1 dan 64 belgigacha boʻlishi kerak.',
+  },
+
+  link: {
+    text: '🔗 <b>Yozilish uchun havolangiz:</b>\n{link}\n\nUni mijozlarga yuboring yoki Instagram profilingizga qoʻying.\n\n<b>Instagram uchun tayyor matn:</b>\n<code>{promo}</code>',
+    promo: '📅 Onlayn yozilish — {name}. Xizmat va qulay vaqtni bir daqiqada, yozishmasdan tanlang 👉 {link}',
+  },
+
+  bk: {
+    title: {
+      today: '<b>📅 Bugungi yozilishlar</b>',
+      tomorrow: '<b>📅 Ertangi yozilishlar</b>',
+      week: '<b>📅 Haftalik yozilishlar</b>',
+    },
+    empty: 'Yozilishlar yoʻq.',
+    line: '{start}–{end} · {service} · {client} {phone} · {price} soʻm · {status}',
+  },
+
+  status: {
+    pending_payment: '⏳ toʻlov kutilmoqda',
+    payment_review: '🔍 toʻlov tekshirilmoqda',
+    confirmed: '✅ tasdiqlangan',
+    cancelled_by_client: '❌ mijoz bekor qildi',
+    cancelled_by_master: '❌ usta bekor qildi',
+    expired: '⌛ toʻlanmadi',
+    completed: '✔️ boʻlib oʻtdi',
+    no_show: '🚫 kelmadi',
+  },
+
+  sub: {
+    line: {
+      trial: '💎 Sinov muddati {until} gacha',
+      active: '💎 Obuna {until} gacha faol',
+      expired: '⚠️ Obuna tugadi — mijozlar yozila olmaydi',
+    },
+    status: {
+      trial: 'sinov muddati',
+      active: 'faol',
+      expired: 'tugagan',
+    },
+    screen: '<b>💎 Obuna</b>\n\nHolati: {status}\nGacha: {until}\nQolgan kunlar: {days}',
+  },
+
+  client: {
+    home: 'Yozilish uchun usta bergan havolani oching.',
+    masterNotFound: 'Usta topilmadi. Havolani tekshiring yoki ustadan yangisini soʻrang.',
+    bookingSoon: 'Usta: <b>{name}</b>.\n\nOnlayn yozilish tez orada ishga tushadi.',
+  },
+};
