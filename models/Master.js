@@ -41,6 +41,9 @@ const masterSchema = new Schema({
   services: { type: [serviceSchema], default: [] },
   schedule: { type: scheduleSchema, default: () => ({}) },
   daysOff: { type: [String], default: [] }, // локальные даты Ташкента 'YYYY-MM-DD'
+  // Профиль для клиентов: описание и фото работ (file_id Telegram)
+  about: { type: String, default: '' },
+  photos: { type: [String], default: [] },
   // Где принимает мастер: текст адреса и/или точка на карте (всё необязательно)
   location: {
     address: { type: String, default: '' },
@@ -74,6 +77,9 @@ const masterSchema = new Schema({
   // Регистрация идёт по шагам; клиенты видят мастера только после registered = true
   registered: { type: Boolean, default: false },
   regStep: { type: String, default: 'name' }, // name | phone | services | schedule | prepayment | done
+  // Реферальная программа: кто пригласил и получил ли он уже бонус
+  referredBy: { type: Schema.Types.ObjectId, ref: 'Master' },
+  referralRewarded: { type: Boolean, default: false },
   // Короткая блокировка на время создания записи (защита от двойного бронирования)
   bookingLockUntil: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now },

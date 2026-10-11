@@ -36,6 +36,11 @@ async function showHome(ctx, opts = {}) {
 async function handleStartPayload(ctx, payload) {
   const match = /^m_([a-z0-9]+)$/i.exec(payload || '');
   if (match) return require('./client').openMaster(ctx, match[1].toLowerCase());
+  const ref = /^r_([a-z0-9]+)$/i.exec(payload || '');
+  if (ref && !ctx.master) {
+    ctx.session.ref = ref[1].toLowerCase();
+    return require('./master/referral').showInvited(ctx);
+  }
   return showHome(ctx, { fresh: true });
 }
 

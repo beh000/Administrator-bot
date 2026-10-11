@@ -78,3 +78,12 @@ test('динамические ключи: дни, статусы, подпис�
   for (const s of ['step', 'buf', 'hor', 'ntc']) assert.ok(lookup(LOCALES.ru, `set.label.${s}`));
   for (const s of ['today', 'tomorrow', 'week']) assert.ok(lookup(LOCALES.ru, `bk.title.${s}`));
 });
+
+test('множественное число в русском и узбекском', () => {
+  const { plural } = require('../locales');
+  const f = ['день', 'дня', 'дней'];
+  assert.deepStrictEqual([1, 2, 5, 11, 14, 21, 22, 25, 44, 101, 111].map((n) => plural('ru', n, f)),
+    ['день', 'дня', 'дней', 'дней', 'дней', 'день', 'дня', 'дней', 'дня', 'день', 'дней']);
+  assert.strictEqual(t('ru', 'reg.done', { name: 'А', days: 44 }).includes('44 дня бесплатно'), true);
+  assert.strictEqual(t('ru', 'reg.done', { name: 'А', days: 30 }).includes('30 дней бесплатно'), true);
+});

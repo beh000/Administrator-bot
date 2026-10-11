@@ -139,6 +139,10 @@ composer.callbackQuery(/^mb:t:(\d+)$/, async (ctx) => {
   if (!mb) return showList(ctx, ctx.session.bkRange || 'today');
   const start = new Date(Number(ctx.match[1]) * 60_000);
   mb.start = start.toISOString();
+  if (mb.mode === 'new' && ctx.session.mbPrefill) {
+    mb.name = ctx.session.mbPrefill.name;
+    return finishManual(ctx, ctx.session.mbPrefill.phone);
+  }
   if (mb.mode === 'new') {
     setStep(ctx, 'mb_name');
     return prompt(ctx, ctx.t('mb.askName', { date: fmtDay(ctx.t, start), time: fmtTime(start) }), backToList(ctx));
@@ -154,14 +158,22 @@ composer.callbackQuery(/^mb:t:(\d+)$/, async (ctx) => {
 // --- Новая запись вручную: услуга → день → время → имя → телефон ---
 
 composer.callbackQuery('mb:new', (ctx) => {
+  ctx.session.mbPrefill = null;
+  return startNew(ctx);
+});
+
+// Выбор услуги для новой записи. ctx.session.mbPrefill — имя/телефон, если
+// записываем клиента из базы (тогда спрашивать их не нужно)
+function startNew(ctx) {
   clearStep(ctx);
   const services = ctx.master.activeServices();
   if (!services.length) return alert(ctx, ctx.t('reg.needService'));
   const kb = new InlineKeyboard();
   services.forEach((s) => kb.text(ctx.t('client.serviceBtn', { title: s.title, duration: s.durationMin, price: fmtMoney(s.price) }), `mb:s:${s.id}`).row());
   kb.text(ctx.t('common.cancel'), backToList(ctx));
-  return show(ctx, ctx.t('mb.chooseService'), kb);
-});
+  const who = ctx.session.mbPrefill ? `${esc(ctx.session.mbPrefill.name)}\n\n` : '';
+  return show(ctx, who + ctx.t('mb.chooseService'), kb);
+}
 
 composer.callbackQuery(/^mb:s:(\w+)$/, (ctx) => {
   const s = ctx.master.activeServices().find((x) => x.id === ctx.match[1]);
@@ -190,6 +202,7 @@ defineStep(
 async function finishManual(ctx, phone) {
   const mb = ctx.session.mb;
   clearStep(ctx);
+  ctx.session.mbPrefill = null;
   if (!mb?.start || !mb.name) return showList(ctx, ctx.session.bkRange || 'today');
   const service = ctx.master.services.find((s) => s.id === mb.service.id) || mb.service;
   const result = await createManualBooking({ master: ctx.master, service, start: new Date(mb.start), name: mb.name, phone });
@@ -293,4 +306,4 @@ defineStep(
   { master: true },
 );
 
-module.exports = { composer };
+module.exports = { composer, startNew };

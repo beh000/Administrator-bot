@@ -62,7 +62,7 @@ admin.callbackQuery('ad:pend', async (ctx) => {
 
 admin.callbackQuery(/^ad:(ok|no):([0-9a-f]{24})$/, async (ctx) => {
   const approved = ctx.match[1] === 'ok';
-  const { payment, master } = await reviewSubscriptionPayment(ctx.match[2], approved);
+  const { payment, master, referrer } = await reviewSubscriptionPayment(ctx.match[2], approved);
   if (!payment) return alert(ctx, ctx.t('admin.notPending'));
 
   const mark = approved
@@ -76,6 +76,13 @@ admin.callbackQuery(/^ad:(ok|no):([0-9a-f]{24})$/, async (ctx) => {
   if (master) {
     await sendTo(ctx.api, master.telegramId, master.language, approved ? 'sub.approved' : 'sub.rejected', {
       until: fmtDate(master.subscription.paidUntil),
+    });
+  }
+  // приглашённый впервые оплатил — бонус пригласившему
+  if (referrer) {
+    await sendTo(ctx.api, referrer.telegramId, referrer.language, 'ref.rewarded', {
+      name: esc(master?.name),
+      until: fmtDate(referrer.subscription.paidUntil),
     });
   }
   return undefined;

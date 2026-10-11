@@ -26,10 +26,12 @@ async function begin(ctx) {
   if (ctx.master?.registered) return require('./menu').show(ctx);
   if (!ctx.master) {
     try {
+      const referrer = ctx.session.ref ? await Master.findOne({ slug: ctx.session.ref, registered: true }) : null;
       ctx.master = await Master.create({
         telegramId: ctx.from.id,
         language: ctx.lang,
         slug: await uniqueSlug(),
+        referredBy: referrer && referrer.telegramId !== ctx.from.id ? referrer._id : undefined,
       });
     } catch (err) {
       if (err.code !== 11000) throw err; // двойное нажатие — мастер уже создан
@@ -120,13 +122,15 @@ async function finish(ctx) {
   const m = ctx.master;
   m.registered = true;
   m.regStep = 'done';
+  const { REFERRAL_TRIAL_BONUS_DAYS } = require('../../services/referral');
+  const trialDays = config.TRIAL_DAYS + (m.referredBy ? REFERRAL_TRIAL_BONUS_DAYS : 0);
   m.subscription = {
     status: 'trial',
-    paidUntil: now().add(config.TRIAL_DAYS, 'day').endOf('day').toDate(),
+    paidUntil: now().add(trialDays, 'day').endOf('day').toDate(),
   };
   await m.save();
   clearStep(ctx);
-  await show(ctx, `${ctx.t('reg.done', { name: esc(m.name), days: config.TRIAL_DAYS })}\n\n${ctx.t('loc.regHint')}`);
+  await show(ctx, `${ctx.t('reg.done', { name: esc(m.name), days: trialDays })}\n\n${ctx.t('loc.regHint')}`);
   await require('./link').sendLink(ctx);
   // Владельцу сервиса — о новом мастере
   const { sendAdmin } = require('../alerts');
@@ -138,6 +142,13 @@ async function finish(ctx) {
     link: masterLink(ctx.me.username, m.slug),
     username: ctx.from.username ? `@${ctx.from.username}` : '—',
   });
+  if (m.referredBy) {
+    const referrer = await Master.findById(m.referredBy);
+    if (referrer) {
+      const { sendTo } = require('../notify');
+      await sendTo(ctx.api, referrer.telegramId, referrer.language, 'ref.joined', { name: esc(m.name) });
+    }
+  }
   return require('./menu').show(ctx, { fresh: true });
 }
 

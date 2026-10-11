@@ -26,6 +26,10 @@ async function openMaster(ctx, slug) {
   const master = await Master.findOne({ slug, registered: true });
   if (!master) return show(ctx, ctx.t('client.masterNotFound'), undefined, { fresh: true });
   ctx.session.booking = { masterId: String(master._id) };
+  // фото работ мастера — один раз, при открытии ссылки
+  if (canAcceptBookings(master) && master.photos?.length) {
+    await require('../master/profile').sendProfile(ctx.api, ctx.chat.id, master, ctx.t);
+  }
   return continueBooking(ctx, { fresh: true });
 }
 
@@ -116,8 +120,11 @@ function showServices(ctx, master, opts = {}) {
     kb.text(ctx.t('client.serviceBtn', { title: s.title, duration: s.durationMin, price: fmtMoney(s.price) }), `c:s:${s.id}`).row();
   });
   kb.text(ctx.t('client.myButton'), 'c:my');
+  // под именем: рейтинг и описание (если нет фото — с фото описание уже в подписи альбома)
   const rating = ratingLine(ctx.t, master);
-  return show(ctx, ctx.t('client.chooseService', { name: esc(master.name), rating: rating ? `\n${rating}` : '' }), kb, opts);
+  let header = rating ? `\n${rating}` : '';
+  if (master.about && !master.photos?.length) header += `\n\n<i>${esc(master.about)}</i>`;
+  return show(ctx, ctx.t('client.chooseService', { name: esc(master.name), rating: header }), kb, opts);
 }
 
 function dateLabel(ctx, dateKey) {

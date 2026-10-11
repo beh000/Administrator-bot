@@ -102,7 +102,8 @@ async function reviewSubscriptionPayment(paymentId, approved) {
   );
   if (!payment) return { payment: null, master: null };
   const master = approved ? await extendSubscription(payment.masterId) : await Master.findById(payment.masterId);
-  return { payment, master };
+  const referrer = approved ? await require('./referral').rewardReferrer(master) : null;
+  return { payment, master, referrer };
 }
 
 module.exports = {

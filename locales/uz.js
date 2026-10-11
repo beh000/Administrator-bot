@@ -177,6 +177,8 @@ module.exports = {
   link: {
     text: '🔗 <b>Yozilish uchun havolangiz:</b>\n{link}\n\nUni mijozlarga yuboring yoki Instagram profilingizga qoʻying.\n\n<b>Instagram uchun tayyor matn:</b>\n<code>{promo}</code>',
     promo: '📅 Onlayn yozilish — {name}. Xizmat va qulay vaqtni bir daqiqada, yozishmasdan tanlang 👉 {link}',
+    qrBtn: '📇 Chop etish uchun QR-kod',
+    qrCaption: '📅 <b>{name}</b> — onlayn yozilish\n\nTelefon kamerasini kodga qarating yoki oching: {link}',
   },
 
   bk: {
@@ -449,5 +451,41 @@ module.exports = {
     listTitle: '<b>⭐ Sharhlar</b> — oʻrtacha baho {avg} ({count})',
     listEmpty: 'Hozircha sharhlar yoʻq. «✅ Keldi» deb belgilaganingizda mijozga tashrifni baholash taklifi boradi.',
     listItem: '{stars} {client}, {date}{comment}',
+  },
+
+  ref: {
+    screen: '<b>🎁 Ustani taklif qiling</b>\n\nHamkasbingizga taklif havolangizni yuboring:\n{link}\n\n• Hamkasbingiz <b>+{bonus} kun</b> bepul muddat oladi.\n• Hamkasbingiz birinchi marta obunani toʻlaganda siz <b>+{reward} kun</b> obuna olasiz.\n\nHavolangiz orqali kelganlar: {joined} · toʻlaganlar: {paid}',
+    shareBtn: '📤 Havolani ulashish',
+    shareText: 'Men mijozlarni shu bot orqali yozaman — mijozlar vaqtni oʻzi tanlaydi, bot eslatadi va kelmay qolishlarni kamaytiradi. Mening havolam orqali — {days} kun bepul:',
+    invited: '👋 Sizni usta <b>{name}</b> taklif qildi.\n\nBu yerda onlayn yozilishni ulash mumkin: mijozlar vaqtni oʻzi tanlaydi, bot tashrifni eslatadi va oldindan toʻlov oladi.\n\nTaklif boʻyicha — <b>{days} kun bepul</b>. Siz ustamisiz yoki mijoz?',
+    joined: '🎉 Taklifingiz boʻyicha usta <b>{name}</b> roʻyxatdan oʻtdi! U obunani toʻlaganda siz +30 kun olasiz.',
+    rewarded: '🎁 Usta <b>{name}</b> obunani toʻladi — sizga +30 kun! Obuna {until} gacha.',
+  },
+
+  cl: {
+    title: '<b>👥 Mijozlar</b>: {count} · jami tashriflar: {visits}\n\nTarixni koʻrish va qayta yozish uchun mijozni bosing.',
+    empty: 'Hozircha mijozlar yoʻq — ular birinchi yozilishlardan keyin paydo boʻladi.',
+    item: '{name} · tashriflar: {visits}',
+    card: '<b>{name}</b>\nTelefon: {phone}\n\nTashriflar: {visits} · sarflagan: {spent} soʻm\nKelmagan: {noShows}\nOxirgi tashrif: {last}\nKeyingi yozilish: {next}',
+    historyTitle: '<b>Tarix:</b>',
+    bookBtn: '➕ Qayta yozish',
+    writeBtn: '💬 Telegramda yozish',
+  },
+
+  pf: {
+    screen: '<b>🖼 Profil</b>\nMijozlar uni havolangizni ochganda koʻradi.\n\n<b>Tavsif:</b>\n{about}\n\n<b>Ishlar rasmlari:</b> {photos} / {max}',
+    noAbout: 'toʻldirilmagan',
+    editAbout: '✏️ Tavsif',
+    addPhotos: '➕ Ishlar rasmini qoʻshish',
+    clearPhotos: '🗑 Barcha rasmlarni oʻchirish',
+    preview: '👁 Mijozlar qanday koʻradi',
+    askAbout: 'Oʻzingiz haqingizda bir-ikki gap yozing ({max} belgigacha): tajriba, materiallar, nimasi bilan ajralib turasiz. Tozalash uchun «-» yuboring.\n\nMasalan: <i>5 yillik manikyur ustasi. Steril asboblar, yapon gellari, 3–4 hafta turadi.</i>',
+    tooLong: 'Juda uzun — koʻpi bilan {max} belgi.',
+    askPhotos: 'Ishlaringiz rasmlarini yuboring — bittadan yoki albom qilib ({max} tagacha). Tugatgach, «Tayyor»ni bosing.',
+    needPhoto: 'Rasm kerak (fayl emas). Yoki «Tayyor»ni bosing.',
+    added: '✅ Rasm qoʻshildi: {count} / {max}.',
+    limit: 'Allaqachon {max} ta rasm — bu maksimum. Yangilarini qoʻshish uchun eskilarini oʻchiring.',
+    done: '✅ Tayyor',
+    emptyPreview: 'Profil boʻsh — tavsif va ishlar rasmlarini qoʻshing.',
   },
 };

@@ -20,6 +20,9 @@ const masterOnly = composer.filter((ctx) => !!ctx.master);
   require('./location'),
   require('./manual'),
   require('./stats'),
+  require('./referral'),
+  require('./clients'),
+  require('./profile'),
 ].forEach((mod) => masterOnly.use(mod.composer));
 
 module.exports = composer;
