@@ -232,6 +232,8 @@ module.exports = {
 
   client: {
     home: 'Чтобы записаться, откройте ссылку, которую дал вам мастер.',
+    homeWithMasters: 'Ваши мастера — запишитесь снова в одно касание. К новому мастеру — по его ссылке.',
+    bookAt: '📅 Записаться: {name}',
     masterNotFound: 'Мастер не найден. Проверьте ссылку или попросите у мастера новую.',
     sessionLost: 'Не понял, к какому мастеру вы записываетесь. Откройте ссылку мастера ещё раз.',
     unavailable: 'Онлайн-запись к <b>{name}</b> временно недоступна.\n\nЗапишитесь напрямую по телефону: {phone}',
@@ -289,6 +291,8 @@ module.exports = {
   },
 
   notify: {
+    openBtn: '📋 Открыть запись',
+    writeBtn: '💬 Написать клиенту',
     newBooking: '🆕 <b>Новая запись</b>\n\n{client}, {phone}\n{service}\n<b>{date}, {time}</b>\n{price} сум',
     cancelled: '❌ <b>Запись отменена клиентом</b>\n\n{client}, {phone}\n{service}\n{date}, {time}\n\nЭто время снова свободно.',
     rescheduled: '🔄 <b>Клиент перенёс запись</b>\n\n{client}, {phone}\n{service}\nБыло: {oldDate}, {oldTime}\nСтало: <b>{date}, {time}</b>',
@@ -351,6 +355,9 @@ module.exports = {
   admin: {
     menu: '<b>🛠 Админ-панель</b>\n\nКоманды:\n/extend &lt;мастер&gt; &lt;дни&gt; — продлить подписку (мастер: slug из ссылки, Telegram ID или id)\n/broadcast — рассылка всем мастерам',
     statsBtn: '📊 Статистика',
+    mastersBtn: '👥 Мастера',
+    mastersTitle: '<b>👥 Мастера</b> (последние {count})',
+    masterLine: '• <b>{name}</b> {phone} · m_{slug}\n   {status} до {until} · записей за 30 дн.: {bookings}',
     pendingBtn: '💳 Ожидают проверки: {n}',
     stats: '<b>📊 Статистика</b>\n\nМастеров: <b>{total}</b>\n• пробный период: {trial}\n• подписка активна: {active}\n• подписка закончилась: {expired}\n\nЗаписей за 7 дней: <b>{b7}</b> (подтверждены/состоялись: {done7})\nЗаписей за 30 дней: <b>{b30}</b> (подтверждены/состоялись: {done30})',
     noPending: 'Нет оплат, ожидающих проверки.',

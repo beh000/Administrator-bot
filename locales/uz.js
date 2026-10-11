@@ -233,6 +233,8 @@ module.exports = {
 
   client: {
     home: 'Yozilish uchun usta bergan havolani oching.',
+    homeWithMasters: 'Sizning ustalaringiz — bir bosishda qayta yoziling. Yangi ustaga — uning havolasi orqali.',
+    bookAt: '📅 Yozilish: {name}',
     masterNotFound: 'Usta topilmadi. Havolani tekshiring yoki ustadan yangisini soʻrang.',
     sessionLost: 'Qaysi ustaga yozilayotganingizni tushunmadim. Usta havolasini qaytadan oching.',
     unavailable: 'Usta <b>{name}</b>: onlayn yozilish vaqtincha mavjud emas.\n\nTelefon orqali toʻgʻridan-toʻgʻri yoziling: {phone}',
@@ -290,6 +292,8 @@ module.exports = {
   },
 
   notify: {
+    openBtn: '📋 Yozilishni ochish',
+    writeBtn: '💬 Mijozga yozish',
     newBooking: '🆕 <b>Yangi yozilish</b>\n\n{client}, {phone}\n{service}\n<b>{date}, {time}</b>\n{price} soʻm',
     cancelled: '❌ <b>Mijoz yozilishni bekor qildi</b>\n\n{client}, {phone}\n{service}\n{date}, {time}\n\nBu vaqt yana boʻsh.',
     rescheduled: '🔄 <b>Mijoz yozilishni koʻchirdi</b>\n\n{client}, {phone}\n{service}\nAvval: {oldDate}, {oldTime}\nEndi: <b>{date}, {time}</b>',
@@ -352,6 +356,9 @@ module.exports = {
   admin: {
     menu: '<b>🛠 Admin panel</b>\n\nBuyruqlar:\n/extend &lt;usta&gt; &lt;kun&gt; — obunani uzaytirish (usta: havoladagi slug, Telegram ID yoki id)\n/broadcast — barcha ustalarga xabar',
     statsBtn: '📊 Statistika',
+    mastersBtn: '👥 Ustalar',
+    mastersTitle: '<b>👥 Ustalar</b> (oxirgi {count})',
+    masterLine: '• <b>{name}</b> {phone} · m_{slug}\n   {status}, {until} gacha · 30 kunda yozilishlar: {bookings}',
     pendingBtn: '💳 Tekshiruvni kutmoqda: {n}',
     stats: '<b>📊 Statistika</b>\n\nUstalar: <b>{total}</b>\n• sinov muddati: {trial}\n• obuna faol: {active}\n• obuna tugagan: {expired}\n\n7 kunlik yozilishlar: <b>{b7}</b> (tasdiqlangan/boʻlib oʻtgan: {done7})\n30 kunlik yozilishlar: <b>{b30}</b> (tasdiqlangan/boʻlib oʻtgan: {done30})',
     noPending: 'Tekshiruvni kutayotgan toʻlovlar yoʻq.',

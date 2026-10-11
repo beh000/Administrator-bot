@@ -126,13 +126,20 @@ composer.callbackQuery(/^c:cy:([0-9a-f]{24})$/, async (ctx) => {
   // о неоплаченной записи мастер ещё не знал — не беспокоим
   if (master && result.previousStatus !== 'pending_payment') {
     const lang = master.language;
-    await sendTo(ctx.api, master.telegramId, lang, 'notify.cancelled', {
-      client: esc(ctx.user.name),
-      phone: esc(ctx.user.phone),
-      service: esc(b.serviceTitle),
-      date: fmtDay((k) => t(lang, k), b.start),
-      time: fmtTime(b.start),
-    });
+    await sendTo(
+      ctx.api,
+      master.telegramId,
+      lang,
+      'notify.cancelled',
+      {
+        client: esc(ctx.user.name),
+        phone: esc(ctx.user.phone),
+        service: esc(b.serviceTitle),
+        date: fmtDay((k) => t(lang, k), b.start),
+        time: fmtTime(b.start),
+      },
+      { reply_markup: new InlineKeyboard().url(t(lang, 'notify.writeBtn'), `tg://user?id=${ctx.from.id}`) },
+    );
   }
   return undefined;
 });

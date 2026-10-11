@@ -281,14 +281,25 @@ composer.callbackQuery(/^c:ok:(\w+):(\d+)$/, async (ctx) => {
     notifyParams.oldDate = fmtDay((k) => t(lang, k), previous.start);
     notifyParams.oldTime = fmtTime(previous.start);
   }
-  return sendTo(ctx.api, master.telegramId, lang, previous ? 'notify.rescheduled' : 'notify.newBooking', notifyParams);
+  const masterKb = new InlineKeyboard()
+    .text(t(lang, 'notify.openBtn'), `mb:v:${booking._id}`)
+    .url(t(lang, 'notify.writeBtn'), `tg://user?id=${ctx.from.id}`);
+  return sendTo(ctx.api, master.telegramId, lang, previous ? 'notify.rescheduled' : 'notify.newBooking', notifyParams, {
+    reply_markup: masterKb,
+  });
 });
 
-function home(ctx) {
+async function home(ctx) {
   clearStep(ctx);
-  const kb = new InlineKeyboard().text(ctx.t('client.myButton'), 'c:my').row().text(ctx.t('menu.language'), 'nav:lang');
+  const kb = new InlineKeyboard();
+  // мастера, у которых клиент уже был, — записаться снова в одно касание
+  const { Booking } = require('../../models');
+  const masterIds = await Booking.distinct('masterId', { clientId: ctx.user._id, kind: { $ne: 'block' } });
+  const masters = masterIds.length ? await Master.find({ _id: { $in: masterIds }, registered: true }, { name: 1 }).limit(8) : [];
+  masters.forEach((m) => kb.text(ctx.t('client.bookAt', { name: m.name }), `c:new:${m._id}`).row());
+  kb.text(ctx.t('client.myButton'), 'c:my').row().text(ctx.t('menu.language'), 'nav:lang');
   if (ctx.master) kb.text(ctx.t('role.master'), 'role:master');
-  return show(ctx, ctx.t('client.home'), kb);
+  return show(ctx, ctx.t(masters.length ? 'client.homeWithMasters' : 'client.home'), kb);
 }
 
 composer.use(my.composer);

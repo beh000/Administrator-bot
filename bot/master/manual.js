@@ -84,7 +84,9 @@ composer.callbackQuery(/^mb:cy:([0-9a-f]{24})$/, async (ctx) => {
   // клиенту из бота — сообщение на его языке
   if (b.clientId?.telegramId) {
     const lang = b.clientId.language;
-    const paid = b.prepaymentAmount > 0 ? `\n\n${t(lang, 'mb.clientRefundNote')}` : '';
+    // о возврате — только если предоплата действительно была внесена
+    const wasPaid = b.prepaymentAmount > 0 && ['payment_review', 'confirmed'].includes(b.previousStatus);
+    const paid = wasPaid ? `\n\n${t(lang, 'mb.clientRefundNote')}` : '';
     await sendTo(
       ctx.api,
       b.clientId.telegramId,

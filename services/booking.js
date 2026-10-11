@@ -16,12 +16,15 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function withMasterLock(masterId, fn) {
   const deadline = Date.now() + LOCK_WAIT_MS;
+  let token;
   for (;;) {
     const now = new Date();
+    // метка блокировки уникальна (время + случайные мс) — снимаем только свою
+    token = new Date(now.getTime() + LOCK_MS + Math.floor(Math.random() * 1000));
     // eslint-disable-next-line no-await-in-loop
     const res = await Master.updateOne(
       { _id: masterId, $or: [{ bookingLockUntil: null }, { bookingLockUntil: { $lt: now } }] },
-      { $set: { bookingLockUntil: new Date(now.getTime() + LOCK_MS) } },
+      { $set: { bookingLockUntil: token } },
     );
     if (res.modifiedCount === 1) break;
     if (Date.now() > deadline) throw new Error('Не удалось взять блокировку мастера');
@@ -31,7 +34,8 @@ async function withMasterLock(masterId, fn) {
   try {
     return await fn();
   } finally {
-    await Master.updateOne({ _id: masterId }, { $set: { bookingLockUntil: null } });
+    // если мы работали дольше LOCK_MS и блокировку уже взял другой — не трогаем её
+    await Master.updateOne({ _id: masterId, bookingLockUntil: token }, { $set: { bookingLockUntil: null } });
   }
 }
 
@@ -173,13 +177,20 @@ async function createBlock({ master, start, end }) {
   });
 }
 
-// Мастер отменяет запись (или снимает закрытое время)
+// Мастер отменяет запись (или снимает закрытое время).
+// Возвращает запись (уже отменённую) и её прежний статус — чтобы понять,
+// была ли предоплата внесена.
 async function cancelByMaster(bookingId, masterId) {
-  return Booking.findOneAndUpdate(
+  const before = await Booking.findOneAndUpdate(
     { _id: bookingId, masterId, status: { $in: Booking.ACTIVE_STATUSES } },
     { $set: { status: 'cancelled_by_master' } },
-    { returnDocument: 'after' },
+    { returnDocument: 'before' },
   ).populate('clientId');
+  if (!before) return null;
+  const previousStatus = before.status;
+  before.status = 'cancelled_by_master';
+  before.previousStatus = previousStatus;
+  return before;
 }
 
 // Мастер переносит запись на другое время. Та же запись, новое время;

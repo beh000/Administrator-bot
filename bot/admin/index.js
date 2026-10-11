@@ -19,6 +19,7 @@ async function showMenu(ctx, opts = {}) {
   const pending = await SubscriptionPayment.countDocuments({ status: 'pending' });
   const kb = new InlineKeyboard()
     .text(ctx.t('admin.statsBtn'), 'ad:stats')
+    .text(ctx.t('admin.mastersBtn'), 'ad:masters')
     .row()
     .text(ctx.t('admin.pendingBtn', { n: pending }), 'ad:pend');
   return show(ctx, ctx.t('admin.menu'), kb, opts);
@@ -44,6 +45,31 @@ admin.callbackQuery('ad:stats', async (ctx) => {
   ]);
   const kb = new InlineKeyboard().text(ctx.t('common.back'), 'ad:menu');
   return show(ctx, ctx.t('admin.stats', { total, trial, active, expired, b7, b30, done7, done30 }), kb);
+});
+
+// --- Список мастеров: подписка и активность за 30 дней ---
+admin.callbackQuery('ad:masters', async (ctx) => {
+  const masters = await Master.find({ registered: true }).sort({ createdAt: -1 }).limit(40).lean();
+  const since = new Date(Date.now() - 30 * 864e5);
+  const counts = await Booking.aggregate([
+    { $match: { kind: { $ne: 'block' }, createdAt: { $gte: since } } },
+    { $group: { _id: '$masterId', n: { $sum: 1 } } },
+  ]);
+  const byMaster = new Map(counts.map((c) => [String(c._id), c.n]));
+  const lines = [ctx.t('admin.mastersTitle', { count: masters.length }), ''];
+  masters.forEach((m) => {
+    lines.push(
+      ctx.t('admin.masterLine', {
+        name: esc(m.name),
+        phone: esc(m.phone || ''),
+        slug: m.slug,
+        status: ctx.t(`sub.status.${m.subscription.status}`),
+        until: fmtDate(m.subscription.paidUntil),
+        bookings: byMaster.get(String(m._id)) || 0,
+      }),
+    );
+  });
+  return show(ctx, lines.join('\n'), new InlineKeyboard().text(ctx.t('common.back'), 'ad:menu'));
 });
 
 // --- Ожидающие оплаты подписок ---
