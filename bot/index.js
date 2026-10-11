@@ -11,6 +11,7 @@ const master = require('./master');
 const client = require('./client');
 const reminders = require('./reminders');
 const admin = require('./admin');
+const reviews = require('./reviews');
 const { config } = require('../config');
 
 function createBot(token) {
@@ -57,6 +58,7 @@ function createBot(token) {
   bot.use(admin.composer);
   bot.use(master);
   bot.use(reminders.composer);
+  bot.use(reviews.composer);
   bot.use(client.composer);
 
   // Текст/контакт/фото — обработчику текущего шага

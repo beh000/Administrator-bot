@@ -105,7 +105,43 @@ async function markAttendance(bookingId, masterId, came) {
   return { booking, noShows: client?.noShowCount?.get(String(masterId)) || 0, client };
 }
 
+// «Пора снова?»: визит состоялся rebookDays дней назад (окно — неделя, чтобы не
+// слать по очень старым), клиент из бота, после этого визита к мастеру не
+// записывался и не приходил. Флаг ставится атомарно.
+async function dueRebookReminders(now = new Date()) {
+  const { Master } = require('../models');
+  const masters = await Master.find({ registered: true, rebookDays: { $gt: 0 }, 'subscription.status': { $ne: 'expired' } });
+  const result = [];
+  for (const master of masters) {
+    const cutoff = now.getTime() - master.rebookDays * 864e5;
+    // eslint-disable-next-line no-await-in-loop
+    const visits = await Booking.find({
+      masterId: master._id,
+      kind: { $ne: 'block' },
+      status: 'completed',
+      clientId: { $ne: null },
+      end: { $lte: new Date(cutoff), $gt: new Date(cutoff - 7 * 864e5) },
+      'reminders.rebook': { $ne: true },
+    }).populate('clientId');
+    for (const visit of visits) {
+      // eslint-disable-next-line no-await-in-loop
+      const later = await Booking.exists({
+        masterId: master._id,
+        clientId: visit.clientId._id,
+        _id: { $ne: visit._id },
+        start: { $gt: visit.start },
+        status: { $in: [...Booking.ACTIVE_STATUSES, 'completed'] },
+      });
+      // eslint-disable-next-line no-await-in-loop
+      const res = await Booking.updateOne({ _id: visit._id, 'reminders.rebook': { $ne: true } }, { $set: { 'reminders.rebook': true } });
+      if (!later && res.modifiedCount === 1) result.push({ master, visit });
+    }
+  }
+  return result;
+}
+
 module.exports = {
+  dueRebookReminders,
   claim,
   dueClientReminders,
   dueUnconfirmedWarnings,

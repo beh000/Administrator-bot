@@ -41,8 +41,15 @@ const bookingSchema = new Schema({
     twoHours: { type: Boolean, default: false },
     unconfirmedWarning: { type: Boolean, default: false },
     attendanceAsked: { type: Boolean, default: false },
+    rebook: { type: Boolean, default: false }, // «пора снова?» после визита
   },
   clientConfirmed: { type: Boolean, default: false },
+  // Отзыв клиента после визита
+  review: {
+    rating: Number, // 1–5
+    comment: String,
+    at: Date,
+  },
   createdAt: { type: Date, default: Date.now },
 });
 

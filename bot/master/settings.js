@@ -11,9 +11,11 @@ const SETTINGS = {
   buf: { field: 'bufferMin', values: [0, 10, 15, 30] },
   hor: { field: 'bookingHorizonDays', values: [7, 14, 30, 60] },
   ntc: { field: 'minNoticeMin', values: [0, 60, 120, 180, 1440] },
+  rbk: { field: 'rebookDays', values: [0, 14, 21, 28, 42] },
 };
 
 function label(ctx, code, value) {
+  if (code === 'rbk') return value ? ctx.t('set.days', { n: value }) : ctx.t('set.off');
   if (code === 'hor') return ctx.t('set.days', { n: value });
   if (code === 'ntc' && value >= 60) return ctx.t('set.hours', { n: value / 60 });
   return ctx.t('set.minutes', { n: value });
@@ -27,6 +29,7 @@ function show(ctx) {
     buf: label(ctx, 'buf', m.bufferMin),
     hor: label(ctx, 'hor', m.bookingHorizonDays),
     ntc: label(ctx, 'ntc', m.minNoticeMin),
+    rbk: label(ctx, 'rbk', m.rebookDays),
   });
   const kb = new InlineKeyboard();
   Object.entries(SETTINGS).forEach(([code, { field, values }]) => {
@@ -40,7 +43,7 @@ function show(ctx) {
 
 composer.callbackQuery('set:menu', (ctx) => show(ctx));
 
-composer.callbackQuery(/^set:(step|buf|hor|ntc):(\d+)$/, async (ctx) => {
+composer.callbackQuery(/^set:(step|buf|hor|ntc|rbk):(\d+)$/, async (ctx) => {
   const { field, values } = SETTINGS[ctx.match[1]];
   const value = Number(ctx.match[2]);
   if (!values.includes(value)) return show(ctx);

@@ -46,6 +46,10 @@ module.exports = {
     subscription: '💎 Obuna',
     language: '🌐 Til',
     myAsClient: '📋 Yozilishlarim (mijoz sifatida)',
+    stats: '📊 Statistika',
+    clients: '👥 Mijozlar',
+    profile: '🖼 Profil',
+    invite: '🎁 Ustani taklif qilish',
   },
 
   reg: {
@@ -136,16 +140,18 @@ module.exports = {
   set: {
     button: '⚙️ Yozilish sozlamalari',
     title:
-      '<b>⚙️ Yozilish sozlamalari</b>\n\nVaqt qadami: {step}\nMijozlar orasidagi tanaffus: {buf}\nOldindan yozilish: {hor}\nYozilishgacha eng kam vaqt: {ntc}',
+      '<b>⚙️ Yozilish sozlamalari</b>\n\nVaqt qadami: {step}\nMijozlar orasidagi tanaffus: {buf}\nOldindan yozilish: {hor}\nYozilishgacha eng kam vaqt: {ntc}\nMijozga «yana vaqt keldi?»: {rbk}',
     label: {
       step: 'Vaqt qadami (09:00, 09:30…)',
       buf: 'Mijozlar orasidagi tanaffus',
       hor: 'Necha kun oldinga yozilish mumkin',
       ntc: 'Yozilishgacha eng kam vaqt',
+      rbk: 'Mijozga «yana vaqt keldi» eslatmasi',
     },
     minutes: '{n} daq',
     hours: '{n} soat',
     days: '{n} kun',
+    off: 'oʻchiq',
   },
 
   pp: {
@@ -232,7 +238,7 @@ module.exports = {
     useTgName: '✅ {name}',
     askPhone: 'Telefon raqamingiz — usta siz bilan bogʻlana olishi uchun. Pastdagi tugmani bosing yoki raqamni yozing.',
     profileSaved: '✅ Rahmat!',
-    chooseService: 'Usta: <b>{name}</b>\n\nXizmatni tanlang:',
+    chooseService: 'Usta: <b>{name}</b>{rating}\n\nXizmatni tanlang:',
     serviceBtn: '{title} · {duration} daq · {price} soʻm',
     noServices: 'Usta <b>{name}</b>: hozircha onlayn yozilish uchun xizmatlar yoʻq.\n\nUsta telefoni: {phone}',
     chooseDate: '<b>{service}</b>\n\nKunni tanlang:',
@@ -401,5 +407,47 @@ module.exports = {
   alert: {
     newMaster: '🆕 <b>Yangi usta!</b>\n\n{name}, {phone}\nTelegram: {username}\nXizmatlar: {services}\nHavola: {link}',
     error: '⚠️ <b>Botda nosozlik</b> ({where})\n\n<code>{message}</code>\n\nTafsilotlar — Railway loglarida. Shu turdagi takroriy nosozliklar 10 daqiqada bir martadan koʻp emas.',
+  },
+
+  months: {
+    1: 'Yanvar', 2: 'Fevral', 3: 'Mart', 4: 'Aprel', 5: 'May', 6: 'Iyun',
+    7: 'Iyul', 8: 'Avgust', 9: 'Sentabr', 10: 'Oktabr', 11: 'Noyabr', 12: 'Dekabr',
+  },
+
+  st: {
+    title: '<b>📊 Statistika — {month} {year}</b>',
+    revenue: '💰 Tushum: <b>{value} soʻm</b>{delta}',
+    visits: '✅ Tashriflar: <b>{value}</b>{delta}',
+    avgCheck: '🧾 Oʻrtacha chek: {value} soʻm',
+    upcoming: '📅 Hali oldinda: {count} ({value} soʻmlik)',
+    clients: '👥 Mijozlar: {value} (yangi: {fresh}, doimiy: {returning})',
+    noShows: '🚫 Kelmaganlar: {value} ({rate}%)',
+    cancelled: '❌ Bekor qilinganlar: {value}',
+    viaBot: '🤖 Bot orqali yozilishlar: {value}',
+    rating: '⭐ Reyting: <b>{avg}</b> ({count} ta sharh)',
+    delta: ' (oʻtgan oyga nisbatan {sign}{value}%)',
+    empty: 'Bu oyda hali tashriflar yoʻq. Tushum «✅ Keldi» deb belgilangan yozilishlar boʻyicha hisoblanadi.',
+  },
+
+  rbk: {
+    text: '👋 {name}, yana «{service}» vaqti keldimi?\n\nOxirgi tashrifingiz: <b>{master}</b>, {date}. Qulay vaqtni tanlang — bir daqiqa oladi.',
+    bookBtn: '📅 Yozilish',
+  },
+
+  rv: {
+    ask: '🙏 Tashrif qanday oʻtdi?\n\n{service} — <b>{master}</b>\n\n1 dan 5 gacha baholang — bu ustaga yordam beradi.',
+    askComment: 'Rahmat! Tashrif haqida bir-ikki ogʻiz yozing — ustaga yoqimli boʻladi. Yoki «Oʻtkazib yuborish»ni bosing.',
+    askImprove: 'Samimiyligingiz uchun rahmat. Nimani yaxshilash mumkin? Usta izohingizni koʻradi.',
+    skip: 'Oʻtkazib yuborish',
+    thanks: '💛 Fikringiz uchun rahmat!',
+    needText: 'Fikringizni matn bilan yozing yoki «Oʻtkazib yuborish»ni bosing.',
+    already: 'Siz bu tashrifni allaqachon baholagansiz.',
+    ratingLine: '⭐ {avg} · {count} ta sharh',
+    masterNew: '{stars} <b>Yangi baho</b>\n\n{client} — {service}, {date}',
+    masterComment: '💬 <b>Sharh</b> {stars}\n\n{client} — {service}, {date}\n<i>«{comment}»</i>',
+    listBtn: '⭐ Sharhlar',
+    listTitle: '<b>⭐ Sharhlar</b> — oʻrtacha baho {avg} ({count})',
+    listEmpty: 'Hozircha sharhlar yoʻq. «✅ Keldi» deb belgilaganingizda mijozga tashrifni baholash taklifi boradi.',
+    listItem: '{stars} {client}, {date}{comment}',
   },
 };

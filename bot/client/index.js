@@ -14,6 +14,7 @@ const { show, prompt, alert, esc, fmtMoney, fmtDay, fmtTime, BASE_OPTS } = requi
 const { sendTo } = require('../notify');
 const my = require('./my');
 const { addressLine, sendMasterLocation } = require('../location');
+const { ratingLine } = require('../reviews');
 const payment = require('./payment');
 
 const composer = new Composer();
@@ -115,7 +116,8 @@ function showServices(ctx, master, opts = {}) {
     kb.text(ctx.t('client.serviceBtn', { title: s.title, duration: s.durationMin, price: fmtMoney(s.price) }), `c:s:${s.id}`).row();
   });
   kb.text(ctx.t('client.myButton'), 'c:my');
-  return show(ctx, ctx.t('client.chooseService', { name: esc(master.name) }), kb, opts);
+  const rating = ratingLine(ctx.t, master);
+  return show(ctx, ctx.t('client.chooseService', { name: esc(master.name), rating: rating ? `\n${rating}` : '' }), kb, opts);
 }
 
 function dateLabel(ctx, dateKey) {

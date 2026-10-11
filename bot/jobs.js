@@ -6,7 +6,7 @@ const { TZ } = require('../utils/time');
 const { expireUnpaid } = require('../services/payments');
 const { esc, fmtDay, fmtTime } = require('./ui');
 const { sendTo } = require('./notify');
-const { runReminders, sendMorningDigest } = require('./reminders');
+const { runReminders, sendMorningDigest, sendRebookReminders } = require('./reminders');
 const { expireDue, dueSubscriptionReminders } = require('../services/subscription');
 const { local } = require('../utils/time');
 const { config } = require('../config');
@@ -99,6 +99,7 @@ function startJobs(bot) {
   cron.schedule('5 0 * * *', guarded('expireSubscriptions', () => expireSubscriptions(bot.api)), opts);
   cron.schedule('0 10 * * *', guarded('remindSubscriptions', () => remindSubscriptions(bot.api)), opts);
   cron.schedule('30 3 * * *', guarded('autoCompleteStale', () => autoCompleteStale()), opts);
+  cron.schedule('0 12 * * *', guarded('rebook', () => sendRebookReminders(bot.api)), opts);
   console.log('[jobs] Задачи запущены');
 }
 

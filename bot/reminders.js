@@ -142,6 +142,27 @@ async function runReminders(api, now = new Date()) {
   return sent;
 }
 
+// «Пора снова?» — раз в день (12:00), клиентам, которые давно не записывались
+async function sendRebookReminders(api, now = new Date()) {
+  const due = await r.dueRebookReminders(now);
+  for (const { master, visit } of due) {
+    const client = visit.clientId;
+    const lang = client.language;
+    const kb = new InlineKeyboard().text(t(lang, 'rbk.bookBtn'), `c:new:${master._id}`);
+    // eslint-disable-next-line no-await-in-loop
+    await sendTo(
+      api,
+      client.telegramId,
+      lang,
+      'rbk.text',
+      { name: esc(client.name || ''), service: esc(visit.serviceTitle), master: esc(master.name), date: fmtDay(tr(lang), visit.start) },
+      { reply_markup: kb },
+    );
+  }
+  if (due.length) console.log(`[reminders] «Пора снова?»: ${due.length}`);
+  return due.length;
+}
+
 // Утреннее расписание мастерам (08:00 по Ташкенту) — только тем, у кого сегодня есть записи
 async function sendMorningDigest(api) {
   const from = nowTz().startOf('day').toDate();
@@ -197,7 +218,12 @@ composer.callbackQuery(/^att:(yes|no):([0-9a-f]{24})$/, async (ctx) => {
     lines.push('', ctx.t('att.prepayNow', { client: esc(client?.name), count: noShows }));
   }
   await ctx.editMessageText(lines.filter(Boolean).join('\n\n'), { reply_markup: { inline_keyboard: [] } }).catch(() => {});
+  // клиент из бота пришёл — просим оценить визит
+  if (came && booking.clientId) {
+    await booking.populate('clientId');
+    await require('./reviews').askForReview(ctx.api, booking, ctx.master);
+  }
   return undefined;
 });
 
-module.exports = { composer, runReminders, sendMorningDigest };
+module.exports = { composer, runReminders, sendMorningDigest, sendRebookReminders };

@@ -51,6 +51,8 @@ const masterSchema = new Schema({
   bufferMin: { type: Number, default: 0 },
   bookingHorizonDays: { type: Number, default: 14 },
   minNoticeMin: { type: Number, default: 60 },
+  // Через сколько дней после визита напомнить клиенту записаться снова (0 — выкл)
+  rebookDays: { type: Number, default: 28 },
   prepayment: {
     enabled: { type: Boolean, default: false },
     amount: { type: Number, default: 0 },
@@ -63,6 +65,11 @@ const masterSchema = new Schema({
     paidUntil: Date,
     // какое напоминание о конце подписки уже отправлено: 'YYYY-MM-DD:3' / 'YYYY-MM-DD:1'
     lastReminder: { type: String, default: '' },
+  },
+  // Рейтинг по отзывам клиентов: среднее = sum / count
+  rating: {
+    sum: { type: Number, default: 0 },
+    count: { type: Number, default: 0 },
   },
   // Регистрация идёт по шагам; клиенты видят мастера только после registered = true
   registered: { type: Boolean, default: false },
