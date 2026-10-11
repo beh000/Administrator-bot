@@ -118,7 +118,7 @@ module.exports = {
     askWeekdaysBreak: 'Ish kunlarida umumiy tanaffus bormi? Vaqtini yozing, masalan <i>13:00-14:00</i>, yoki tugmani bosing.',
     noBreakButton: 'Tanaffussiz',
     askBreak: 'Tanaffus vaqtini yozing.\n\nMasalan: <i>13:00-14:00</i>',
-    badRange: 'Vaqtni SS:DD-SS:DD koʻrinishida yozing, boshlanishi tugashidan oldin boʻlsin. Masalan: 09:00-19:00',
+    badRange: 'Vaqtni SS:DD-SS:DD koʻrinishida yozing, boshlanishi tugashidan oldin boʻlsin. Masalan: 09:00-19:00 yoki shunchaki 9-19',
     badBreak: 'Tanaffus ish vaqti ichida ({start}–{end}) boʻlishi va boshqa tanaffuslar bilan kesishmasligi kerak.',
   },
 
@@ -127,8 +127,8 @@ module.exports = {
     title: '<b>📅 Dam olish sanalari</b>\nBu kunlarda yozilish boʻlmaydi.',
     empty: 'Alohida dam olish kunlari yoʻq.',
     add: '➕ Sana qoʻshish',
-    ask: 'Dam olish sanasini yozing.\n\nMasalan: <i>25.12</i> yoki <i>25.12.2026</i>',
-    badDate: 'Sanani tushunmadim yoki u oʻtib ketgan. Format: KK.OO yoki KK.OO.YYYY',
+    ask: 'Dam olish sanasini yoki taʼtil davrini yozing.\n\nMasalan: <i>25.12</i>, <i>25.12.2026</i> yoki <i>25.12-05.01</i>',
+    badDate: 'Sanani tushunmadim yoki u oʻtib ketgan. Format: KK.OO, KK.OO.YYYY yoki davr KK.OO-KK.OO (62 kungacha).',
     added: '✅ {date} — dam olish kuni.',
     addedWithBookings: '✅ {date} — dam olish kuni.\n\n⚠️ Bu kunga allaqachon {count} ta yozilish bor. Ular bekor qilinmadi — mijozlar bilan bogʻlaning.',
   },
@@ -396,5 +396,10 @@ module.exports = {
     blockPast: 'Bu vaqt allaqachon oʻtib ketgan.',
     blockConflict: 'Bu vaqtga allaqachon yozilishlar bor — avval ularni koʻchiring yoki bekor qiling:\n\n{list}',
     blocked: '✅ {date}, {start}–{end} — vaqt yopildi.',
+  },
+
+  alert: {
+    newMaster: '🆕 <b>Yangi usta!</b>\n\n{name}, {phone}\nTelegram: {username}\nXizmatlar: {services}\nHavola: {link}',
+    error: '⚠️ <b>Botda nosozlik</b> ({where})\n\n<code>{message}</code>\n\nTafsilotlar — Railway loglarida. Shu turdagi takroriy nosozliklar 10 daqiqada bir martadan koʻp emas.',
   },
 };

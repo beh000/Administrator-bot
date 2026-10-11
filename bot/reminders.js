@@ -89,9 +89,22 @@ async function sendAttendanceQuestion(api, b) {
 }
 
 // Один проход крона (каждые 5 минут)
+// Тихие часы: с 22:00 до 08:00 по Ташкенту не беспокоим (кроме напоминания за 2 часа)
+const QUIET_FROM = 22;
+const QUIET_TO = 8;
+function isQuiet(now) {
+  const hour = local(now).hour();
+  return hour >= QUIET_FROM || hour < QUIET_TO;
+}
+const ageMin = (b, now) => (now.getTime() - new Date(b.createdAt).getTime()) / 60_000;
+
 async function runReminders(api, now = new Date()) {
   let sent = 0;
-  const { dayBefore, twoHours } = await r.dueClientReminders(now);
+  const quiet = isQuiet(now);
+  const due = await r.dueClientReminders(now);
+  // клиент только что записался — напоминать ещё рано
+  const twoHours = due.twoHours.filter((b) => ageMin(b, now) >= 20);
+  const dayBefore = quiet ? [] : due.dayBefore.filter((b) => ageMin(b, now) >= 60);
   for (const b of twoHours) {
     // первое напоминание уже не нужно — помечаем оба
     // eslint-disable-next-line no-await-in-loop
@@ -109,7 +122,7 @@ async function runReminders(api, now = new Date()) {
       sent += 1;
     }
   }
-  for (const b of await r.dueUnconfirmedWarnings(now)) {
+  for (const b of quiet ? [] : await r.dueUnconfirmedWarnings(now)) {
     // eslint-disable-next-line no-await-in-loop
     if (await r.claim(b._id, ['unconfirmedWarning'])) {
       // eslint-disable-next-line no-await-in-loop
@@ -117,7 +130,7 @@ async function runReminders(api, now = new Date()) {
       sent += 1;
     }
   }
-  for (const b of await r.dueAttendanceQuestions(now)) {
+  for (const b of quiet ? [] : await r.dueAttendanceQuestions(now)) {
     // eslint-disable-next-line no-await-in-loop
     if (await r.claim(b._id, ['attendanceAsked'])) {
       // eslint-disable-next-line no-await-in-loop

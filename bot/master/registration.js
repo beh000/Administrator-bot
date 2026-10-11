@@ -128,6 +128,16 @@ async function finish(ctx) {
   clearStep(ctx);
   await show(ctx, `${ctx.t('reg.done', { name: esc(m.name), days: config.TRIAL_DAYS })}\n\n${ctx.t('loc.regHint')}`);
   await require('./link').sendLink(ctx);
+  // Владельцу сервиса — о новом мастере
+  const { sendAdmin } = require('../alerts');
+  const { masterLink } = require('../../utils/ids');
+  await sendAdmin('alert.newMaster', {
+    name: esc(m.name),
+    phone: esc(m.phone),
+    services: m.services.length,
+    link: masterLink(ctx.me.username, m.slug),
+    username: ctx.from.username ? `@${ctx.from.username}` : '—',
+  });
   return require('./menu').show(ctx, { fresh: true });
 }
 

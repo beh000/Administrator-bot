@@ -2,6 +2,7 @@
 // отправкой флаг в booking.reminders ставится атомарно (claim), поэтому даже
 // при пересекающихся запусках крона дубля не будет.
 const { Booking, Client } = require('../models');
+const { local } = require('../utils/time');
 
 const H = 3600_000;
 const DAY_BEFORE_MS = 24 * H;
@@ -51,12 +52,17 @@ async function dueClientReminders(now = new Date()) {
 // Только если запись существовала до этой отметки — иначе клиент не успел бы ответить.
 async function dueUnconfirmedWarnings(now = new Date()) {
   const t = now.getTime();
+  // Записи до 11:00 утра: за 3 часа — это ночь, поэтому вечером (с 20:00)
+  // предупреждаем заранее по всем утренним записям на завтра
+  const localNow = local(now);
+  const morningEdge = localNow.add(1, 'day').startOf('day').add(11, 'hour');
+  const windowEnd = localNow.hour() >= 20 ? Math.max(t + UNCONFIRMED_MS, morningEdge.valueOf()) : t + UNCONFIRMED_MS;
   const list = await populate(
     Booking.find({
       status: 'confirmed',
       clientConfirmed: { $ne: true },
       clientId: { $ne: null },
-      start: { $gt: now, $lte: new Date(t + UNCONFIRMED_MS) },
+      start: { $gt: now, $lte: new Date(windowEnd) },
       'reminders.unconfirmedWarning': { $ne: true },
     }),
   );

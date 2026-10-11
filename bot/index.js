@@ -1,4 +1,7 @@
 const { Bot, session, GrammyError, HttpError, InlineKeyboard } = require('grammy');
+const { autoRetry } = require('@grammyjs/auto-retry');
+const { initAlerts, alertError } = require('./alerts');
+const { fitText } = require('./ui');
 const { mongoSessionStorage } = require('../models');
 const { t, LANGS } = require('../locales');
 const { loadUser, privateOnly } = require('./middleware');
@@ -12,6 +15,10 @@ const { config } = require('../config');
 
 function createBot(token) {
   const bot = new Bot(token);
+  initAlerts(bot.api);
+
+  // 429 (слишком много запросов) и временные сетевые ошибки — повторяем сами
+  bot.api.config.use(autoRetry({ maxRetryAttempts: 3, maxDelaySeconds: 30 }));
 
   // Все тексты в locales/ размечены HTML — включаем его по умолчанию
   // и убираем пустые ряды inline-клавиатуры, которые оставляет InlineKeyboard.row()
@@ -23,6 +30,9 @@ function createBot(token) {
     if (['sendMessage', 'editMessageText', 'sendPhoto', 'editMessageCaption'].includes(method)) {
       payload = { parse_mode: 'HTML', ...payload };
     }
+    // Лимит Telegram: 4096 символов на сообщение, 1024 на подпись
+    if (typeof payload.text === 'string') payload = { ...payload, text: fitText(payload.text, 4000) };
+    if (typeof payload.caption === 'string') payload = { ...payload, caption: fitText(payload.caption, 1000) };
     return prev(method, payload, signal);
   });
 
@@ -66,6 +76,9 @@ function createBot(token) {
     if (error instanceof GrammyError) console.error(`[bot] Ошибка Telegram API (${where}):`, error.description);
     else if (error instanceof HttpError) console.error(`[bot] Сетевая ошибка (${where}):`, error.message);
     else console.error(`[bot] Ошибка обработки (${where}):`, error);
+    // «message is not modified» и заблокировавшие бота пользователи — не сбой
+    const benign = error instanceof GrammyError && /not modified|bot was blocked|chat not found|query is too old/i.test(error.description);
+    if (!benign) alertError('bot', error);
     // Сообщаем пользователю, что что-то пошло не так, но не падаем
     const lang = ctx.lang || 'ru';
     ctx.reply(t(lang, 'common.error')).catch(() => {});

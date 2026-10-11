@@ -2,13 +2,14 @@
 // нормализованное значение или null, если ввод некорректен.
 const { now, atLocal, hhmmToMin } = require('./time');
 
-const TIME_RE = /^([01]?\d|2[0-3])[:.]([0-5]\d)$/;
+// «9:00», «09.30» или просто час: «9»
+const TIME_RE = /^([01]?\d|2[0-3])(?:[:.]([0-5]\d))?$/;
 
-// "9:00", "09.00" → "09:00"
+// "9:00", "09.00", "9" → "09:00"
 function parseTime(input) {
   const m = String(input || '').trim().match(TIME_RE);
   if (!m) return null;
-  return `${m[1].padStart(2, '0')}:${m[2]}`;
+  return `${m[1].padStart(2, '0')}:${m[2] || '00'}`;
 }
 
 // "09:00-19:00", "9:00 – 19:00" → { start: "09:00", end: "19:00" }; start < end
@@ -88,7 +89,34 @@ function parseFutureDate(input) {
   return key;
 }
 
+// Отпуск: «25.12» или диапазон «25.12-05.01» / «25.12.2026-05.01.2027».
+// Возвращает список дат 'YYYY-MM-DD' (не больше 62 дней) или null.
+const MAX_RANGE_DAYS = 62;
+function parseFutureDateRange(input) {
+  const parts = String(input || '').split(/\s*[-–—]\s*/).filter(Boolean);
+  if (parts.length === 1) {
+    const one = parseFutureDate(parts[0]);
+    return one ? [one] : null;
+  }
+  if (parts.length !== 2) return null;
+  const from = parseFutureDate(parts[0]);
+  let to = parseFutureDate(parts[1]);
+  if (!from || !to) return null;
+  // «25.12-05.01» без года: конец раньше начала — значит следующий год
+  if (to < from && !/\d{2,4}$/.test(parts[1].split(/[./]/)[2] || '')) {
+    to = atLocal(to).add(1, 'year').format('YYYY-MM-DD');
+  }
+  if (to < from) return null;
+  const days = [];
+  for (let d = atLocal(from); !d.isAfter(atLocal(to)); d = d.add(1, 'day')) {
+    days.push(d.format('YYYY-MM-DD'));
+    if (days.length > MAX_RANGE_DAYS) return null;
+  }
+  return days;
+}
+
 module.exports = {
+  parseFutureDateRange,
   parseTime,
   parseTimeRange,
   parseInteger,

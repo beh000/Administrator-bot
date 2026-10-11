@@ -12,6 +12,8 @@ const { local } = require('../utils/time');
 const { config } = require('../config');
 const { fmtMoney } = require('./ui');
 const { InlineKeyboard } = require('grammy');
+const { alertError } = require('./alerts');
+const { Booking } = require('../models');
 
 // Задача не запускается повторно, пока не закончилась предыдущая,
 // и никогда не роняет процесс
@@ -24,6 +26,7 @@ function guarded(name, fn) {
       await fn();
     } catch (err) {
       console.error(`[jobs] Ошибка в задаче "${name}":`, err);
+      alertError(`jobs:${name}`, err);
     } finally {
       running = false;
     }
@@ -77,6 +80,17 @@ async function remindSubscriptions(api) {
   if (due.length) console.log(`[jobs] Напоминаний о подписке: ${due.length}`);
 }
 
+// Раз в день: записи, по которым мастер так и не ответил «пришёл / не пришёл»
+// за 2 суток, считаем состоявшимися — чтобы статистика не висела
+async function autoCompleteStale(now = new Date()) {
+  const res = await Booking.updateMany(
+    { kind: { $ne: 'block' }, status: 'confirmed', end: { $lt: new Date(now.getTime() - 48 * 3600_000) } },
+    { $set: { status: 'completed' } },
+  );
+  if (res.modifiedCount) console.log(`[jobs] Автоматически завершено записей: ${res.modifiedCount}`);
+  return res.modifiedCount;
+}
+
 function startJobs(bot) {
   const opts = { timezone: TZ };
   cron.schedule('* * * * *', guarded('expirePayments', () => expirePayments(bot.api)), opts);
@@ -84,7 +98,8 @@ function startJobs(bot) {
   cron.schedule('0 8 * * *', guarded('morningDigest', () => sendMorningDigest(bot.api)), opts);
   cron.schedule('5 0 * * *', guarded('expireSubscriptions', () => expireSubscriptions(bot.api)), opts);
   cron.schedule('0 10 * * *', guarded('remindSubscriptions', () => remindSubscriptions(bot.api)), opts);
+  cron.schedule('30 3 * * *', guarded('autoCompleteStale', () => autoCompleteStale()), opts);
   console.log('[jobs] Задачи запущены');
 }
 
-module.exports = { startJobs, expirePayments, expireSubscriptions, remindSubscriptions };
+module.exports = { startJobs, expirePayments, expireSubscriptions, remindSubscriptions, autoCompleteStale };

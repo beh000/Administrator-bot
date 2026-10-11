@@ -8,6 +8,8 @@ test('parseTime', () => {
   assert.strictEqual(v.parseTime('09.30'), '09:30');
   assert.strictEqual(v.parseTime('23:59'), '23:59');
   assert.strictEqual(v.parseTime('24:00'), null);
+  assert.strictEqual(v.parseTime('9'), '09:00');
+  assert.strictEqual(v.parseTime('18'), '18:00');
   assert.strictEqual(v.parseTime('9:5'), null);
   assert.strictEqual(v.parseTime('abc'), null);
 });
@@ -19,6 +21,7 @@ test('parseTimeRange', () => {
   assert.strictEqual(v.parseTimeRange('19:00-09:00'), null);
   assert.strictEqual(v.parseTimeRange('10:00-10:00'), null);
   assert.strictEqual(v.parseTimeRange('10:00'), null);
+  assert.deepStrictEqual(v.parseTimeRange('9-18'), { start: '09:00', end: '18:00' });
 });
 
 test('parsePrice / parseDuration', () => {
@@ -59,4 +62,20 @@ test('parseFutureDate', () => {
   assert.strictEqual(v.parseFutureDate(yesterday.format('DD.MM.YYYY')), null);
   assert.strictEqual(v.parseFutureDate('31.02.2030'), null);
   assert.strictEqual(v.parseFutureDate('abc'), null);
+});
+
+test('parseFutureDateRange', () => {
+  const d = (n) => now().add(n, 'day');
+  assert.deepStrictEqual(v.parseFutureDateRange(d(1).format('DD.MM.YYYY')), [d(1).format('YYYY-MM-DD')]);
+  const range = v.parseFutureDateRange(`${d(2).format('DD.MM.YYYY')}-${d(4).format('DD.MM.YYYY')}`);
+  assert.deepStrictEqual(range, [d(2), d(3), d(4)].map((x) => x.format('YYYY-MM-DD')));
+  // конец раньше начала (с годом) — ошибка
+  assert.strictEqual(v.parseFutureDateRange(`${d(4).format('DD.MM.YYYY')}-${d(2).format('DD.MM.YYYY')}`), null);
+  // слишком длинный отпуск
+  assert.strictEqual(v.parseFutureDateRange(`${d(1).format('DD.MM.YYYY')}-${d(100).format('DD.MM.YYYY')}`), null);
+  assert.strictEqual(v.parseFutureDateRange('abc'), null);
+  // через Новый год без года: 30.12-02.01
+  const nyRange = v.parseFutureDateRange('30.12-02.01');
+  assert.strictEqual(nyRange.length, 4);
+  assert.ok(nyRange[0].endsWith('-12-30') && nyRange[3].endsWith('-01-02'));
 });

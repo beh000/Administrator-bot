@@ -2,7 +2,7 @@
 const { Composer, InlineKeyboard } = require('grammy');
 const { Booking } = require('../../models');
 const { now, atLocal } = require('../../utils/time');
-const { parseFutureDate } = require('../../utils/validate');
+const { parseFutureDateRange } = require('../../utils/validate');
 const { defineStep, setStep, clearStep } = require('../steps');
 const { show: showScreen, prompt } = require('../ui');
 
@@ -21,21 +21,32 @@ async function show(ctx, opts = {}) {
     ctx.master.daysOff = upcoming;
     await ctx.master.save();
   }
-  const text = [ctx.t('off.title'), '', upcoming.length ? upcoming.map(fmt).join('\n') : ctx.t('off.empty')].join('\n');
+  const ranges = toRanges(upcoming);
+  const label = ([from, to]) => (from === to ? fmt(from) : `${fmt(from)} – ${fmt(to)}`);
+  const text = [ctx.t('off.title'), '', ranges.length ? ranges.map(label).join('\n') : ctx.t('off.empty')].join('\n');
   const kb = new InlineKeyboard();
-  upcoming.forEach((d, i) => {
-    kb.text(`❌ ${fmt(d)}`, `off:rm:${d}`);
-    if (i % 2 === 1) kb.row();
-  });
-  kb.row().text(ctx.t('off.add'), 'off:add');
+  ranges.slice(0, 30).forEach((r) => kb.text(`❌ ${label(r)}`, `off:rm:${r[0]}:${r[1]}`).row());
+  kb.text(ctx.t('off.add'), 'off:add');
   kb.row().text(ctx.t('common.back'), 'sch:list');
   return showScreen(ctx, text, kb, opts);
 }
 
+// Подряд идущие даты → диапазоны [from, to]
+function toRanges(sorted) {
+  const ranges = [];
+  sorted.forEach((d) => {
+    const last = ranges[ranges.length - 1];
+    if (last && atLocal(last[1]).add(1, 'day').format('YYYY-MM-DD') === d) last[1] = d;
+    else ranges.push([d, d]);
+  });
+  return ranges;
+}
+
 composer.callbackQuery('off:list', (ctx) => show(ctx));
 
-composer.callbackQuery(/^off:rm:(\d{4}-\d{2}-\d{2})$/, async (ctx) => {
-  ctx.master.daysOff = ctx.master.daysOff.filter((d) => d !== ctx.match[1]);
+composer.callbackQuery(/^off:rm:(\d{4}-\d{2}-\d{2}):(\d{4}-\d{2}-\d{2})$/, async (ctx) => {
+  const [, from, to] = ctx.match;
+  ctx.master.daysOff = ctx.master.daysOff.filter((d) => d < from || d > to);
   await ctx.master.save();
   return show(ctx);
 });
@@ -48,19 +59,24 @@ composer.callbackQuery('off:add', (ctx) => {
 defineStep(
   'off_add',
   async (ctx) => {
-    const key = parseFutureDate(ctx.message?.text);
-    if (!key) return ctx.reply(ctx.t('off.badDate'));
-    if (!ctx.master.daysOff.includes(key)) {
-      ctx.master.daysOff.push(key);
+    const keys = parseFutureDateRange(ctx.message?.text);
+    if (!keys) return ctx.reply(ctx.t('off.badDate'));
+    const fresh = keys.filter((k) => !ctx.master.daysOff.includes(k));
+    if (fresh.length) {
+      ctx.master.daysOff.push(...fresh);
       await ctx.master.save();
     }
-    // Уже существующие записи на этот день не отменяем — предупреждаем мастера
+    // Уже существующие записи на эти дни не отменяем — предупреждаем мастера
+    const first = keys[0];
+    const last = keys[keys.length - 1];
     const count = await Booking.countDocuments({
       masterId: ctx.master._id,
+      kind: { $ne: 'block' },
       status: { $in: Booking.ACTIVE_STATUSES },
-      start: { $gte: atLocal(key).toDate(), $lt: atLocal(key).add(1, 'day').toDate() },
+      start: { $gte: atLocal(first).toDate(), $lt: atLocal(last).add(1, 'day').toDate() },
     });
-    await ctx.reply(count ? ctx.t('off.addedWithBookings', { date: fmt(key), count }) : ctx.t('off.added', { date: fmt(key) }));
+    const date = keys.length > 1 ? `${fmt(first)} – ${fmt(last)}` : fmt(first);
+    await ctx.reply(count ? ctx.t('off.addedWithBookings', { date, count }) : ctx.t('off.added', { date }));
     return show(ctx, { fresh: true });
   },
   { master: true },

@@ -65,4 +65,19 @@ function fmtTime(date) {
   return local(date).format('HH:mm');
 }
 
-module.exports = { esc, fmtMoney, fmtDay, fmtTime, show, prompt, footer, alert, BASE_OPTS };
+// Обрезать длинный текст по границе строки, чтобы не порвать HTML-теги
+function fitText(text, limit) {
+  if (text.length <= limit) return text;
+  const lines = text.split('\n');
+  const out = [];
+  let len = 0;
+  for (const line of lines) {
+    if (len + line.length + 1 > limit - 2) break;
+    out.push(line);
+    len += line.length + 1;
+  }
+  out.push('…');
+  return out.join('\n');
+}
+
+module.exports = { fitText, esc, fmtMoney, fmtDay, fmtTime, show, prompt, footer, alert, BASE_OPTS };

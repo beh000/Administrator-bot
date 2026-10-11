@@ -4,8 +4,36 @@ const { createBot, setCommands } = require('./bot');
 const { startJobs } = require('./bot/jobs');
 
 // Бот не должен падать из-за случайной ошибки — логируем и работаем дальше
-process.on('unhandledRejection', (err) => console.error('[process] unhandledRejection:', err));
-process.on('uncaughtException', (err) => console.error('[process] uncaughtException:', err));
+const { alertError } = require('./bot/alerts');
+
+process.on('unhandledRejection', (err) => {
+  console.error('[process] unhandledRejection:', err);
+  alertError('process', err);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[process] uncaughtException:', err);
+  alertError('process', err);
+});
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// При деплое Railway несколько секунд держит старую и новую копию бота —
+// Telegram отвечает 409 Conflict. Не падаем, а ждём, пока старая остановится.
+async function startPolling(bot) {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      await bot.start({
+        allowed_updates: ['message', 'callback_query'],
+        onStart: (me) => console.log(`[bot] Запущен как @${me.username}`),
+      });
+      return;
+    } catch (err) {
+      if (err?.error_code !== 409 || attempt >= 24) throw err;
+      console.warn(`[bot] 409 Conflict — другая копия ещё работает, повтор через 5 с (попытка ${attempt})`);
+      await sleep(5000);
+    }
+  }
+}
 
 // MongoDB по умолчанию не строит индексы, если на диске меньше 500 МБ свободно.
 // На маленьком томе (бесплатный Railway — 500 МБ всего) это условие невыполнимо,
@@ -42,10 +70,7 @@ async function main() {
   process.once('SIGINT', stop);
   process.once('SIGTERM', stop);
 
-  await bot.start({
-    allowed_updates: ['message', 'callback_query'],
-    onStart: (me) => console.log(`[bot] Запущен как @${me.username}`),
-  });
+  await startPolling(bot);
 }
 
 main().catch((err) => {
