@@ -33,6 +33,7 @@ async function dueClientReminders(now = new Date()) {
       status: 'confirmed',
       start: { $gt: new Date(t + TWO_HOURS_MS), $lte: new Date(t + DAY_BEFORE_MS) },
       'reminders.dayBefore': { $ne: true },
+      clientId: { $ne: null },
     }),
   );
   const twoHours = await populate(
@@ -40,6 +41,7 @@ async function dueClientReminders(now = new Date()) {
       status: 'confirmed',
       start: { $gt: now, $lte: new Date(t + TWO_HOURS_MS) },
       'reminders.twoHours': { $ne: true },
+      clientId: { $ne: null },
     }),
   );
   return { dayBefore, twoHours };
@@ -53,6 +55,7 @@ async function dueUnconfirmedWarnings(now = new Date()) {
     Booking.find({
       status: 'confirmed',
       clientConfirmed: { $ne: true },
+      clientId: { $ne: null },
       start: { $gt: now, $lte: new Date(t + UNCONFIRMED_MS) },
       'reminders.unconfirmedWarning': { $ne: true },
     }),
@@ -68,6 +71,7 @@ async function dueAttendanceQuestions(now = new Date()) {
       status: 'confirmed',
       end: { $lte: new Date(t - ATTENDANCE_AFTER_MS), $gt: new Date(t - ATTENDANCE_MAX_AGE_MS) },
       'reminders.attendanceAsked': { $ne: true },
+      kind: { $ne: 'block' },
     }),
   );
 }
@@ -88,7 +92,8 @@ async function markAttendance(bookingId, masterId, came) {
     { $set: { status: came ? 'completed' : 'no_show' } },
     { returnDocument: 'after' },
   );
-  if (!booking || came) return { booking, noShows: null };
+  // у ручной записи клиента в боте нет — неявку не к кому привязать
+  if (!booking || came || !booking.clientId) return { booking, noShows: null };
   const key = `noShowCount.${String(masterId)}`;
   const client = await Client.findOneAndUpdate({ _id: booking.clientId }, { $inc: { [key]: 1 } }, { returnDocument: 'after' });
   return { booking, noShows: client?.noShowCount?.get(String(masterId)) || 0, client };

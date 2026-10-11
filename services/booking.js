@@ -119,7 +119,95 @@ async function cancelByClient(bookingId, client) {
   return { ok: true, booking: updated, previousStatus: booking.status };
 }
 
+// --- Действия мастера ---
+
+// Мастер записал клиента сам (звонок, личка). Сразу confirmed, клиента в боте нет.
+async function createManualBooking({ master, service, start, name, phone }) {
+  return withMasterLock(master._id, async () => {
+    if (!(await isSlotAvailable(master, service, start, { forMaster: true }))) return { ok: false, reason: 'slot_taken' };
+    const startDate = new Date(start);
+    const booking = await Booking.create({
+      masterId: master._id,
+      kind: 'booking',
+      manualName: name,
+      manualPhone: phone || undefined,
+      serviceId: service.id,
+      serviceTitle: service.title,
+      durationMin: service.durationMin,
+      start: startDate,
+      end: new Date(startDate.getTime() + service.durationMin * 60_000),
+      price: service.price,
+      status: 'confirmed',
+    });
+    return { ok: true, booking };
+  });
+}
+
+// Активные записи мастера, пересекающие [start, end)
+function overlapping(masterId, start, end) {
+  return Booking.find({
+    masterId,
+    status: { $in: Booking.ACTIVE_STATUSES },
+    start: { $lt: end },
+    end: { $gt: start },
+  })
+    .sort({ start: 1 })
+    .populate('clientId', 'name phone');
+}
+
+// Мастер закрыл время. Если там уже есть записи — не закрываем, возвращаем их.
+async function createBlock({ master, start, end }) {
+  return withMasterLock(master._id, async () => {
+    const conflicts = await overlapping(master._id, start, end);
+    if (conflicts.length) return { ok: false, reason: 'conflict', conflicts };
+    const booking = await Booking.create({
+      masterId: master._id,
+      kind: 'block',
+      serviceId: 'block',
+      start,
+      end,
+      durationMin: Math.round((end - start) / 60_000),
+      status: 'confirmed',
+    });
+    return { ok: true, booking };
+  });
+}
+
+// Мастер отменяет запись (или снимает закрытое время)
+async function cancelByMaster(bookingId, masterId) {
+  return Booking.findOneAndUpdate(
+    { _id: bookingId, masterId, status: { $in: Booking.ACTIVE_STATUSES } },
+    { $set: { status: 'cancelled_by_master' } },
+    { returnDocument: 'after' },
+  ).populate('clientId');
+}
+
+// Мастер переносит запись на другое время. Та же запись, новое время;
+// напоминания отправятся заново.
+async function moveByMaster({ master, bookingId, start }) {
+  return withMasterLock(master._id, async () => {
+    const booking = await Booking.findOne({ _id: bookingId, masterId: master._id, kind: 'booking', status: 'confirmed' });
+    if (!booking) return { ok: false, reason: 'not_found' };
+    const service = { id: booking.serviceId, title: booking.serviceTitle, durationMin: booking.durationMin };
+    const free = await isSlotAvailable(master, service, start, { excludeBookingId: booking._id, forMaster: true });
+    if (!free) return { ok: false, reason: 'slot_taken' };
+    const oldStart = booking.start;
+    const startDate = new Date(start);
+    booking.start = startDate;
+    booking.end = new Date(startDate.getTime() + booking.durationMin * 60_000);
+    booking.reminders = { dayBefore: false, twoHours: false, unconfirmedWarning: false, attendanceAsked: false };
+    booking.clientConfirmed = false;
+    await booking.save();
+    await booking.populate('clientId');
+    return { ok: true, booking, oldStart };
+  });
+}
+
 module.exports = {
+  createManualBooking,
+  createBlock,
+  cancelByMaster,
+  moveByMaster,
   createBooking,
   cancelByClient,
   needsPrepayment,

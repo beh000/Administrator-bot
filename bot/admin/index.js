@@ -37,10 +37,10 @@ admin.callbackQuery('ad:stats', async (ctx) => {
     count({ 'subscription.status': 'trial' }),
     count({ 'subscription.status': 'active' }),
     count({ 'subscription.status': 'expired' }),
-    Booking.countDocuments({ createdAt: { $gte: since(7) } }),
-    Booking.countDocuments({ createdAt: { $gte: since(30) } }),
-    Booking.countDocuments({ createdAt: { $gte: since(7) }, status: { $in: ['confirmed', 'completed'] } }),
-    Booking.countDocuments({ createdAt: { $gte: since(30) }, status: { $in: ['confirmed', 'completed'] } }),
+    Booking.countDocuments({ kind: { $ne: 'block' }, createdAt: { $gte: since(7) } }),
+    Booking.countDocuments({ kind: { $ne: 'block' }, createdAt: { $gte: since(30) } }),
+    Booking.countDocuments({ kind: { $ne: 'block' }, createdAt: { $gte: since(7) }, status: { $in: ['confirmed', 'completed'] } }),
+    Booking.countDocuments({ kind: { $ne: 'block' }, createdAt: { $gte: since(30) }, status: { $in: ['confirmed', 'completed'] } }),
   ]);
   const kb = new InlineKeyboard().text(ctx.t('common.back'), 'ad:menu');
   return show(ctx, ctx.t('admin.stats', { total, trial, active, expired, b7, b30, done7, done30 }), kb);

@@ -145,6 +145,8 @@
 | `bk.title.week` | <b>📅 Записи на неделю</b> | <b>📅 Haftalik yozilishlar</b> |
 | `bk.empty` | Записей нет. | Yozilishlar yoʻq. |
 | `bk.line` | {start}–{end} · {service} · {client} {phone} · {price} сум · {status} | {start}–{end} · {service} · {client} {phone} · {price} soʻm · {status} |
+| `bk.blockLine` | {start}–{end} · 🚫 время закрыто | {start}–{end} · 🚫 vaqt yopilgan |
+| `bk.blockShort` | 🚫 закрыто | 🚫 yopilgan |
 | `status.pending_payment` | ⏳ ждёт оплату | ⏳ toʻlov kutilmoqda |
 | `status.payment_review` | 🔍 проверка оплаты | 🔍 toʻlov tekshirilmoqda |
 | `status.confirmed` | ✅ подтверждена | ✅ tasdiqlangan |
@@ -295,3 +297,32 @@
 | `admin.bcCancelled` | Рассылка отменена. | Xabar yuborish bekor qilindi. |
 | `admin.bcSending` | 📤 Отправляю… | 📤 Yuborilmoqda… |
 | `admin.bcDone` | ✅ Рассылка завершена: доставлено {ok}, ошибок {fail}. | ✅ Yuborish tugadi: yetkazildi {ok}, xatolar {fail}. |
+| `mb.newBtn` | ➕ Записать клиента | ➕ Mijozni yozish |
+| `mb.blockBtn` | 🚫 Закрыть время | 🚫 Vaqtni yopish |
+| `mb.card` | <b>Запись</b> ({source})<br><br>Клиент: {client}<br>Телефон: {phone}<br>Услуга: {service}<br>Когда: <b>{date}, {time}</b><br>Цена: {price} сум<br>Статус: {status} | <b>Yozilish</b> ({source})<br><br>Mijoz: {client}<br>Telefon: {phone}<br>Xizmat: {service}<br>Qachon: <b>{date}, {time}</b><br>Narxi: {price} soʻm<br>Holati: {status} |
+| `mb.sourceBot` | через бота | bot orqali |
+| `mb.sourceManual` | внесена вручную | qoʻlda kiritilgan |
+| `mb.blockCard` | <b>🚫 Время закрыто</b><br><br>{date}, {start}–{end}<br><br>Клиенты не могут записаться на это время. | <b>🚫 Vaqt yopilgan</b><br><br>{date}, {start}–{end}<br><br>Mijozlar bu vaqtga yozila olmaydi. |
+| `mb.unblockBtn` | 🔓 Открыть время | 🔓 Vaqtni ochish |
+| `mb.unblocked` | Время снова открыто для записи | Vaqt yana yozilish uchun ochiq |
+| `mb.cancelAsk` | Отменить запись?<br><br>{client} — {date}, {time} | Yozilish bekor qilinsinmi?<br><br>{client} — {date}, {time} |
+| `mb.cancelAskBot` | Отменить запись?<br><br>{client} — {date}, {time}<br><br>Клиент получит уведомление в боте. | Yozilish bekor qilinsinmi?<br><br>{client} — {date}, {time}<br><br>Mijozga botda xabar boradi. |
+| `mb.cancelled` | Запись отменена | Yozilish bekor qilindi |
+| `mb.clientCancelled` | ❌ <b>Мастер отменил запись</b><br><br>{service}, {date}, {time}<br>Мастер: {master}, {phone}<br><br>Можно записаться на другое время по ссылке мастера. | ❌ <b>Usta yozilishni bekor qildi</b><br><br>{service}, {date}, {time}<br>Usta: {master}, {phone}<br><br>Usta havolasi orqali boshqa vaqtga yozilishingiz mumkin. |
+| `mb.clientRefundNote` | Вы вносили предоплату — о возврате договоритесь с мастером напрямую. | Siz oldindan toʻlagansiz — pulni qaytarish haqida usta bilan toʻgʻridan-toʻgʻri kelishib oling. |
+| `mb.chooseService` | Какая услуга? | Qaysi xizmat? |
+| `mb.chooseDate` | <b>{service}</b><br><br>Выберите день: | <b>{service}</b><br><br>Kunni tanlang: |
+| `mb.noDates` | Свободных дней нет — проверьте график и выходные. | Boʻsh kunlar yoʻq — ish jadvali va dam olish kunlarini tekshiring. |
+| `mb.askName` | {date}, {time}<br><br>Как зовут клиента? | {date}, {time}<br><br>Mijozning ismi nima? |
+| `mb.askPhone` | Телефон клиента? Можно пропустить. | Mijozning telefoni? Oʻtkazib yuborish mumkin. |
+| `mb.skipPhone` | Пропустить ➡️ | Oʻtkazib yuborish ➡️ |
+| `mb.created` | ✅ Записано: {client} — {service}, {date}, {time}. | ✅ Yozildi: {client} — {service}, {date}, {time}. |
+| `mb.moveConfirm` | Перенести запись на <b>{date}, {time}</b>?<br><br>Если клиент записывался через бота, он получит уведомление. | Yozilish <b>{date}, {time}</b> ga koʻchirilsinmi?<br><br>Agar mijoz bot orqali yozilgan boʻlsa, unga xabar boradi. |
+| `mb.moveConfirmBtn` | ✅ Перенести | ✅ Koʻchirish |
+| `mb.moved` | Запись перенесена | Yozilish koʻchirildi |
+| `mb.clientMoved` | 🔄 <b>Мастер перенёс вашу запись</b><br><br>{service}<br>Было: {oldDate}, {oldTime}<br>Стало: <b>{date}, {time}</b><br><br>Мастер: {master}, {phone}. Если новое время не подходит — свяжитесь с мастером или отмените запись в «📋 Мои записи». | 🔄 <b>Usta yozilishingizni koʻchirdi</b><br><br>{service}<br>Avval: {oldDate}, {oldTime}<br>Endi: <b>{date}, {time}</b><br><br>Usta: {master}, {phone}. Yangi vaqt toʻgʻri kelmasa — usta bilan bogʻlaning yoki «📋 Yozilishlarim»da bekor qiling. |
+| `mb.blockChooseDate` | На какой день закрыть время?<br><br>Если не работаете весь день — используйте «📅 Выходные даты» в графике. | Qaysi kunga vaqtni yopamiz?<br><br>Agar kun boʻyi ishlamasangiz — ish jadvalidagi «📅 Dam olish sanalari»dan foydalaning. |
+| `mb.blockAskRange` | {date}: какое время закрыть?<br><br>Например: <i>15:00-17:00</i> | {date}: qaysi vaqtni yopamiz?<br><br>Masalan: <i>15:00-17:00</i> |
+| `mb.blockPast` | Это время уже прошло. | Bu vaqt allaqachon oʻtib ketgan. |
+| `mb.blockConflict` | На это время уже есть записи — сначала перенесите или отмените их:<br><br>{list} | Bu vaqtga allaqachon yozilishlar bor — avval ularni koʻchiring yoki bekor qiling:<br><br>{list} |
+| `mb.blocked` | ✅ {date}, {start}–{end} — время закрыто. | ✅ {date}, {start}–{end} — vaqt yopildi. |

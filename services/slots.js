@@ -92,25 +92,42 @@ async function loadBusy(masterId, from, to, excludeBookingId) {
   return Booking.find(query, { start: 1, end: 1 }).lean();
 }
 
-async function freeSlots(master, service, dateKey, { excludeBookingId } = {}) {
-  const from = atLocal(dateKey).toDate();
-  const to = atLocal(dateKey).add(1, 'day').toDate();
-  const busy = await loadBusy(master._id, from, to, excludeBookingId);
-  return computeSlots({ master, service, dateKey, busy, now: new Date() });
+// Мастер записывает клиента сам: без «минимума до записи», горизонт до 60 дней
+const MASTER_HORIZON_DAYS = 60;
+function effective(master, forMaster) {
+  if (!forMaster) return master;
+  return {
+    _id: master._id,
+    schedule: master.schedule,
+    daysOff: master.daysOff,
+    slotStepMin: master.slotStepMin,
+    bufferMin: master.bufferMin,
+    minNoticeMin: 0,
+    bookingHorizonDays: Math.max(master.bookingHorizonDays || 0, MASTER_HORIZON_DAYS),
+  };
 }
 
-async function availableDates(master, service, { excludeBookingId } = {}) {
+async function freeSlots(master, service, dateKey, { excludeBookingId, forMaster = false } = {}) {
+  const m = effective(master, forMaster);
+  const from = atLocal(dateKey).toDate();
+  const to = atLocal(dateKey).add(1, 'day').toDate();
+  const busy = await loadBusy(m._id, from, to, excludeBookingId);
+  return computeSlots({ master: m, service, dateKey, busy, now: new Date() });
+}
+
+async function availableDates(master, service, { excludeBookingId, forMaster = false } = {}) {
+  const m = effective(master, forMaster);
   const now = new Date();
   const from = nowTz().startOf('day').toDate();
-  const to = nowTz().startOf('day').add(master.bookingHorizonDays, 'day').toDate();
-  const busy = await loadBusy(master._id, from, to, excludeBookingId);
-  return computeAvailableDates({ master, service, busy, now });
+  const to = nowTz().startOf('day').add(m.bookingHorizonDays, 'day').toDate();
+  const busy = await loadBusy(m._id, from, to, excludeBookingId);
+  return computeAvailableDates({ master: m, service, busy, now });
 }
 
 // Повторная проверка перед созданием записи: свободен ли ещё именно этот старт
-async function isSlotAvailable(master, service, start, { excludeBookingId } = {}) {
+async function isSlotAvailable(master, service, start, { excludeBookingId, forMaster = false } = {}) {
   const dateKey = local(start).format('YYYY-MM-DD');
-  const slots = await freeSlots(master, service, dateKey, { excludeBookingId });
+  const slots = await freeSlots(master, service, dateKey, { excludeBookingId, forMaster });
   const t = new Date(start).getTime();
   return slots.some((s) => s.start.getTime() === t);
 }

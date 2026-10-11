@@ -16,7 +16,13 @@ const ACTIVE_STATUSES = ['pending_payment', 'payment_review', 'confirmed'];
 
 const bookingSchema = new Schema({
   masterId: { type: Types.ObjectId, ref: 'Master', required: true },
-  clientId: { type: Types.ObjectId, ref: 'Client', required: true },
+  // kind: booking — запись клиента; block — мастер закрыл время (клиента нет)
+  kind: { type: String, enum: ['booking', 'block'], default: 'booking' },
+  // Клиент из бота. У ручной записи мастера и у блока — пусто
+  clientId: { type: Types.ObjectId, ref: 'Client' },
+  // Ручная запись: мастер записал клиента сам (по телефону, в личке)
+  manualName: String,
+  manualPhone: String,
   serviceId: { type: String, required: true },
   // Снимок услуги на момент записи: мастер может потом её переименовать
   serviceTitle: String,

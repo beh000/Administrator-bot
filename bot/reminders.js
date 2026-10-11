@@ -67,8 +67,9 @@ async function sendUnconfirmedWarning(api, b) {
 
 async function sendAttendanceQuestion(api, b) {
   const master = b.masterId;
-  const client = b.clientId;
-  if (!master || !client) return;
+  if (!master) return;
+  // клиент из бота или записанный мастером вручную
+  const client = b.clientId || { name: b.manualName, phone: b.manualPhone };
   const lang = master.language;
   const kb = new InlineKeyboard().text(t(lang, 'att.yes'), `att:yes:${b._id}`).text(t(lang, 'att.no'), `att:no:${b._id}`);
   await sendTo(
@@ -77,8 +78,8 @@ async function sendAttendanceQuestion(api, b) {
     lang,
     'att.ask',
     {
-      client: esc(client.name),
-      phone: esc(client.phone),
+      client: esc(client.name || '—'),
+      phone: esc(client.phone || '—'),
       service: esc(b.serviceTitle),
       date: fmtDay(tr(lang), b.start),
       time: fmtTime(b.start),
