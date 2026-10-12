@@ -67,7 +67,9 @@ composer.callbackQuery(/^cl:b:([cm][0-9a-f]+)$/, async (ctx) => {
   const clients = await masterClients(ctx.master._id);
   const c = clients.find((x) => x.key === ctx.match[1]);
   if (!c) return showList(ctx);
-  ctx.session.mbPrefill = { name: c.name, phone: c.phone || null };
+  // клиент из бота (ключ c<id>) — запись будет сразу его, с уведомлением
+  const clientId = c.telegramId ? c.key.slice(1) : null;
+  ctx.session.mbPrefill = { name: c.name, phone: c.phone || null, clientId };
   return require('./manual').startNew(ctx);
 });
 

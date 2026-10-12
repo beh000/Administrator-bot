@@ -411,6 +411,18 @@ module.exports = {
     blockPast: 'Bu vaqt allaqachon oʻtib ketgan.',
     blockConflict: 'Bu vaqtga allaqachon yozilishlar bor — avval ularni koʻchiring yoki bekor qiling:\n\n{list}',
     blocked: '✅ {date}, {start}–{end} — vaqt yopildi.',
+    createdLinked: '✅ Yozildi: {client} — {service}, {date}, {time}.\n\nMijoz botdan foydalanadi: unga xabar yuborildi, eslatmalar avtomatik keladi.',
+    inviteBtn: '📤 Mijozga yuborish',
+    inviteCardBtn: '📤 Mijoz uchun havola',
+    invite: '📤 <b>Mijozga havolani yuboring</b> — Telegram, WhatsApp yoki SMS orqali.\n\nHavolani ochgach, mijoz eslatmalarni oladi va yozilishni oʻzi koʻchirishi yoki bekor qilishi mumkin.\n\nYuborish uchun matn (nusxa olish uchun bosing):\n<code>{text}</code>',
+    inviteText: 'Siz {master} ustaga yozildingiz: {service}, {date}, {time}. Eslatma olish va yozilishni boshqarish uchun havolani oching: {link}',
+    clientBooked: '📅 <b>Usta sizni yozib qoʻydi</b>\n\nUsta: {master}, {phone}\nXizmat: {service}\nQachon: <b>{date}, {time}</b>{address}\n\nBir kun va 2 soat oldin eslatamiz. Koʻchirish yoki bekor qilish — «📋 Yozilishlarim»da.',
+    claimed: '✅ <b>Yozilish ulandi</b>\n\nUsta: {master}, {phone}\nXizmat: {service}\nQachon: <b>{date}, {time}</b>{address}\n\nBir kun va 2 soat oldin eslatamiz. Koʻchirish yoki bekor qilish — «📋 Yozilishlarim»da.',
+    claimedMaster: '🔗 {client} havolani ochdi. Yozilish ({date}, {time}) endi mijozning botida — eslatmalar avtomatik keladi.',
+    claimOwn: 'Bu havola mijozingiz uchun — uni mijozga yuboring. Oʻzingiz ochishingiz shart emas.',
+    claimTaken: 'Bu havola orqali yozilishni boshqa odam ulagan. Agar bu sizning yozilishingiz boʻlsa — usta bilan bogʻlaning.',
+    claimInactive: 'Bu yozilish bekor qilingan yoki vaqti oʻtib ketgan.',
+    claimNotFound: 'Havola yaroqsiz. Usta bilan aniqlashtiring.',
   },
 
   alert: {

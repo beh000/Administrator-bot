@@ -23,6 +23,9 @@ const bookingSchema = new Schema({
   // Ручная запись: мастер записал клиента сам (по телефону, в личке)
   manualName: String,
   manualPhone: String,
+  // Ссылка-подтверждение для клиента ручной записи: t.me/<bot>?start=b_<claimToken>.
+  // Открыв её, клиент привязывает запись к себе и получает напоминания
+  claimToken: String,
   serviceId: { type: String, required: true },
   // Снимок услуги на момент записи: мастер может потом её переименовать
   serviceTitle: String,
@@ -56,6 +59,7 @@ const bookingSchema = new Schema({
 bookingSchema.index({ masterId: 1, start: 1 });
 bookingSchema.index({ status: 1, start: 1 });
 bookingSchema.index({ clientId: 1, start: 1 });
+bookingSchema.index({ claimToken: 1 }, { unique: true, sparse: true });
 
 const Booking = model('Booking', bookingSchema);
 Booking.STATUSES = STATUSES;

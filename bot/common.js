@@ -32,10 +32,13 @@ async function showHome(ctx, opts = {}) {
   return show(ctx, ctx.t('role.choose'), kb, opts);
 }
 
-// Обработка параметра /start (deep link). m_<slug> — ссылка мастера.
+// Обработка параметра /start (deep link). m_<slug> — ссылка мастера,
+// r_<slug> — приглашение мастера, b_<token> — подтверждение ручной записи.
 async function handleStartPayload(ctx, payload) {
   const match = /^m_([a-z0-9]+)$/i.exec(payload || '');
   if (match) return require('./client').openMaster(ctx, match[1].toLowerCase());
+  const claim = /^b_([a-z0-9]{10})$/.exec(payload || '');
+  if (claim) return require('./client/claim').claim(ctx, claim[1]);
   const ref = /^r_([a-z0-9]+)$/i.exec(payload || '');
   if (ref && !ctx.master) {
     ctx.session.ref = ref[1].toLowerCase();

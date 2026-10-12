@@ -102,6 +102,8 @@ defineStep('cl_phone', async (ctx) => {
   const phone = parsePhone(contact ? contact.phone_number : ctx.message?.text);
   if (!phone) return ctx.reply(ctx.t('reg.badPhone'));
   ctx.user.phone = phone;
+  // свой контакт (кнопкой) — номер подтверждён; набранный вручную — нет
+  ctx.user.phoneVerified = Boolean(contact && contact.user_id === ctx.from.id);
   await ctx.user.save();
   clearStep(ctx);
   await ctx.reply(ctx.t('client.profileSaved'), { reply_markup: { remove_keyboard: true } });

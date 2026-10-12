@@ -4,8 +4,9 @@
 // транзакций нет. Вместо них — короткая блокировка мастера (bookingLockUntil):
 // пока она взята, никто другой не создаёт запись к этому мастеру. Под
 // блокировкой слот проверяется заново и только потом создаётся запись.
-const { Master, Booking } = require('../models');
+const { Master, Booking, Client } = require('../models');
 const { isSlotAvailable } = require('./slots');
+const { randomId } = require('../utils/ids');
 
 const LOCK_MS = 15_000;
 const LOCK_WAIT_MS = 5_000;
@@ -126,15 +127,31 @@ async function cancelByClient(bookingId, client) {
 // --- Действия мастера ---
 
 // Мастер записал клиента сам (звонок, личка). Сразу confirmed, клиента в боте нет.
-async function createManualBooking({ master, service, start, name, phone }) {
+// Клиент бота для ручной записи: явно выбранный мастером (из его базы) или
+// найденный по телефону — только по подтверждённому номеру (кнопка «Отправить
+// номер»), чтобы чужой человек, вписавший этот номер, не получил запись.
+async function findBotClient(master, { clientId, phone }) {
+  let client = null;
+  if (clientId) client = await Client.findById(clientId);
+  else if (phone) client = await Client.findOne({ phone, phoneVerified: true });
+  if (!client || client.telegramId === master.telegramId) return null;
+  return client;
+}
+
+// Мастер записал клиента сам. Если клиент есть в боте — запись сразу его
+// (уведомление и напоминания), иначе — со ссылкой-подтверждением для клиента.
+async function createManualBooking({ master, service, start, name, phone, clientId }) {
+  const client = await findBotClient(master, { clientId, phone });
   return withMasterLock(master._id, async () => {
     if (!(await isSlotAvailable(master, service, start, { forMaster: true }))) return { ok: false, reason: 'slot_taken' };
     const startDate = new Date(start);
     const booking = await Booking.create({
       masterId: master._id,
       kind: 'booking',
+      clientId: client?._id,
       manualName: name,
       manualPhone: phone || undefined,
+      claimToken: client ? undefined : randomId(10),
       serviceId: service.id,
       serviceTitle: service.title,
       durationMin: service.durationMin,
@@ -143,8 +160,36 @@ async function createManualBooking({ master, service, start, name, phone }) {
       price: service.price,
       status: 'confirmed',
     });
-    return { ok: true, booking };
+    return { ok: true, booking, client };
   });
+}
+
+// Ссылка-подтверждение для старой ручной записи, у которой её ещё нет
+async function ensureClaimToken(booking) {
+  if (booking.claimToken || booking.clientId) return booking.claimToken;
+  const res = await Booking.findOneAndUpdate(
+    { _id: booking._id, claimToken: null, clientId: null },
+    { $set: { claimToken: randomId(10) } },
+    { returnDocument: 'after' },
+  );
+  booking.claimToken = res?.claimToken || (await Booking.findById(booking._id, { claimToken: 1 }))?.claimToken;
+  return booking.claimToken;
+}
+
+// Клиент открыл ссылку-подтверждение: запись становится его (атомарно, один раз).
+// reason: not_found | inactive | taken | own (уже его)
+async function claimBooking(token, client) {
+  const booking = await Booking.findOneAndUpdate(
+    { claimToken: token, clientId: null, status: 'confirmed', end: { $gt: new Date() } },
+    { $set: { clientId: client._id } },
+    { returnDocument: 'after' },
+  );
+  if (booking) return { ok: true, booking };
+  const b = await Booking.findOne({ claimToken: token });
+  if (!b) return { ok: false, reason: 'not_found' };
+  if (b.clientId && String(b.clientId) === String(client._id)) return { ok: false, reason: 'own', booking: b };
+  if (b.clientId) return { ok: false, reason: 'taken' };
+  return { ok: false, reason: 'inactive' };
 }
 
 // Активные записи мастера, пересекающие [start, end)
@@ -216,6 +261,8 @@ async function moveByMaster({ master, bookingId, start }) {
 
 module.exports = {
   createManualBooking,
+  ensureClaimToken,
+  claimBooking,
   createBlock,
   cancelByMaster,
   moveByMaster,

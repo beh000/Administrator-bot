@@ -6,10 +6,11 @@ const { t } = require('../../locales');
 const { atLocal, local, now: nowTz, hhmmToMin } = require('../../utils/time');
 const { parseName, parsePhone, parseTimeRange } = require('../../utils/validate');
 const { availableDates, freeSlots } = require('../../services/slots');
-const { createManualBooking, createBlock, cancelByMaster, moveByMaster } = require('../../services/booking');
+const { createManualBooking, createBlock, cancelByMaster, moveByMaster, ensureClaimToken } = require('../../services/booking');
 const { defineStep, setStep, clearStep } = require('../steps');
 const { show, prompt, alert, esc, fmtMoney, fmtDay, fmtTime } = require('../ui');
 const { sendTo } = require('../notify');
+const { addressLine } = require('../location');
 const { clientOf, showList } = require('./bookings');
 
 const composer = new Composer();
@@ -57,12 +58,59 @@ async function showCard(ctx, id) {
     }
     if (active && b.status === 'confirmed') kb.text(ctx.t('client.rescheduleBtn'), `mb:mv:${b._id}`).row();
     if (active) kb.text(ctx.t('client.cancelBtn'), `mb:cx:${b._id}`).row();
+    if (active && !b.clientId) kb.text(ctx.t('mb.inviteCardBtn'), `mb:inv:${b._id}`).row();
   }
   kb.text(ctx.t('common.back'), backToList(ctx));
   return show(ctx, text, kb);
 }
 
 composer.callbackQuery(/^mb:v:([0-9a-f]{24})$/, (ctx) => showCard(ctx, ctx.match[1]));
+
+// --- Ссылка-подтверждение для клиента ручной записи ---
+
+async function inviteContent(ctx, b) {
+  const token = await ensureClaimToken(b);
+  const link = `https://t.me/${ctx.me.username}?start=b_${token}`;
+  const text = ctx.t('mb.inviteText', {
+    master: ctx.master.name,
+    service: b.serviceTitle,
+    date: fmtDay(ctx.t, b.start),
+    time: fmtTime(b.start),
+    link,
+  });
+  const kb = new InlineKeyboard().url(ctx.t('mb.inviteBtn'), `https://t.me/share/url?url=${encodeURIComponent(text)}`).row();
+  return { text: ctx.t('mb.invite', { text: esc(text) }), kb };
+}
+
+composer.callbackQuery(/^mb:inv:([0-9a-f]{24})$/, async (ctx) => {
+  const b = await findOwn(ctx, ctx.match[1]);
+  if (!b || b.kind !== 'booking') return showList(ctx, ctx.session.bkRange || 'today');
+  if (b.clientId) return showCard(ctx, ctx.match[1]);
+  const { text, kb } = await inviteContent(ctx, b);
+  kb.text(ctx.t('common.back'), `mb:v:${b._id}`);
+  return show(ctx, text, kb);
+});
+
+// Клиенту из бота: мастер записал его сам
+async function notifyClientBooked(ctx, client, b) {
+  const lang = client.language || 'ru';
+  const tr = (k, p) => t(lang, k, p);
+  await sendTo(
+    ctx.api,
+    client.telegramId,
+    lang,
+    'mb.clientBooked',
+    {
+      master: esc(ctx.master.name),
+      phone: esc(ctx.master.phone),
+      service: esc(b.serviceTitle),
+      date: fmtDay(tr, b.start),
+      time: fmtTime(b.start),
+      address: addressLine(tr, ctx.master),
+    },
+    { reply_markup: new InlineKeyboard().text(t(lang, 'client.myButton'), 'c:my') },
+  );
+}
 
 // --- Отмена мастером ---
 
@@ -143,6 +191,7 @@ composer.callbackQuery(/^mb:t:(\d+)$/, async (ctx) => {
   mb.start = start.toISOString();
   if (mb.mode === 'new' && ctx.session.mbPrefill) {
     mb.name = ctx.session.mbPrefill.name;
+    mb.clientId = ctx.session.mbPrefill.clientId || null;
     return finishManual(ctx, ctx.session.mbPrefill.phone);
   }
   if (mb.mode === 'new') {
@@ -207,11 +256,27 @@ async function finishManual(ctx, phone) {
   ctx.session.mbPrefill = null;
   if (!mb?.start || !mb.name) return showList(ctx, ctx.session.bkRange || 'today');
   const service = ctx.master.services.find((s) => s.id === mb.service.id) || mb.service;
-  const result = await createManualBooking({ master: ctx.master, service, start: new Date(mb.start), name: mb.name, phone });
+  const result = await createManualBooking({
+    master: ctx.master,
+    service,
+    start: new Date(mb.start),
+    name: mb.name,
+    phone,
+    clientId: mb.clientId,
+  });
   ctx.session.mb = null;
   if (!result.ok) return ctx.reply(ctx.t('client.slotTaken'));
   const b = result.booking;
-  await ctx.reply(ctx.t('mb.created', { client: esc(b.manualName), service: esc(b.serviceTitle), date: fmtDay(ctx.t, b.start), time: fmtTime(b.start) }));
+  const params = { client: esc(b.manualName), service: esc(b.serviceTitle), date: fmtDay(ctx.t, b.start), time: fmtTime(b.start) };
+  if (result.client) {
+    // клиент есть в боте — запись сразу его: уведомление и напоминания
+    await notifyClientBooked(ctx, result.client, b);
+    await ctx.reply(ctx.t('mb.createdLinked', params));
+  } else {
+    // клиента в боте нет — ссылка, открыв которую он подключит запись
+    const invite = await inviteContent(ctx, b);
+    await ctx.reply(`${ctx.t('mb.created', params)}\n\n${invite.text}`, { reply_markup: invite.kb });
+  }
   ctx.session.bkRange = b.start < nowTz().startOf('day').add(1, 'day').toDate() ? 'today' : 'week';
   return showList(ctx, ctx.session.bkRange);
 }
