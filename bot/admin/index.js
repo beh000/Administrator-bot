@@ -1,6 +1,6 @@
 // Админ (только ADMIN_ID): статистика, оплаты подписок, /extend, /broadcast
 const { Composer, InlineKeyboard } = require('grammy');
-const { Master, Booking, SubscriptionPayment } = require('../../models');
+const { Master, Booking, Client, SubscriptionPayment } = require('../../models');
 const { config } = require('../../config');
 const { t } = require('../../locales');
 const { local } = require('../../utils/time');
@@ -33,7 +33,7 @@ admin.callbackQuery('ad:stats', async (ctx) => {
   const now = Date.now();
   const since = (days) => new Date(now - days * 864e5);
   const count = (filter) => Master.countDocuments({ registered: true, ...filter });
-  const [total, trial, active, expired, b7, b30, done7, done30] = await Promise.all([
+  const [total, trial, active, expired, b7, b30, done7, done30, users, users7, bookers] = await Promise.all([
     count({}),
     count({ 'subscription.status': 'trial' }),
     count({ 'subscription.status': 'active' }),
@@ -42,9 +42,13 @@ admin.callbackQuery('ad:stats', async (ctx) => {
     Booking.countDocuments({ kind: { $ne: 'block' }, createdAt: { $gte: since(30) } }),
     Booking.countDocuments({ kind: { $ne: 'block' }, createdAt: { $gte: since(7) }, status: { $in: ['confirmed', 'completed'] } }),
     Booking.countDocuments({ kind: { $ne: 'block' }, createdAt: { $gte: since(30) }, status: { $in: ['confirmed', 'completed'] } }),
+    // пользователи бота: все, кто нажал /start (мастера и клиенты)
+    Client.countDocuments({}),
+    Client.countDocuments({ createdAt: { $gte: since(7) } }),
+    Booking.distinct('clientId', { clientId: { $ne: null } }).then((ids) => ids.length),
   ]);
   const kb = new InlineKeyboard().text(ctx.t('common.back'), 'ad:menu');
-  return show(ctx, ctx.t('admin.stats', { total, trial, active, expired, b7, b30, done7, done30 }), kb);
+  return show(ctx, ctx.t('admin.stats', { total, trial, active, expired, b7, b30, done7, done30, users, users7, bookers }), kb);
 });
 
 // --- Список мастеров: подписка и активность за 30 дней ---

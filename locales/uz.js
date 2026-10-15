@@ -360,7 +360,7 @@ module.exports = {
     mastersTitle: '<b>👥 Ustalar</b> (oxirgi {count})',
     masterLine: '• <b>{name}</b> {phone} · m_{slug}\n   {status}, {until} gacha · 30 kunda yozilishlar: {bookings}',
     pendingBtn: '💳 Tekshiruvni kutmoqda: {n}',
-    stats: '<b>📊 Statistika</b>\n\nUstalar: <b>{total}</b>\n• sinov muddati: {trial}\n• obuna faol: {active}\n• obuna tugagan: {expired}\n\n7 kunlik yozilishlar: <b>{b7}</b> (tasdiqlangan/boʻlib oʻtgan: {done7})\n30 kunlik yozilishlar: <b>{b30}</b> (tasdiqlangan/boʻlib oʻtgan: {done30})',
+    stats: '<b>📊 Statistika</b>\n\n<b>👤 Bot foydalanuvchilari: {users}</b> (7 kunda yangi: {users7})\nUlardan bot orqali yozilganlar: {bookers}\n\nUstalar: <b>{total}</b>\n• sinov muddati: {trial}\n• obuna faol: {active}\n• obuna tugagan: {expired}\n\n7 kunlik yozilishlar: <b>{b7}</b> (tasdiqlangan/boʻlib oʻtgan: {done7})\n30 kunlik yozilishlar: <b>{b30}</b> (tasdiqlangan/boʻlib oʻtgan: {done30})',
     noPending: 'Tekshiruvni kutayotgan toʻlovlar yoʻq.',
     subReview: '💎 <b>Obuna toʻlovi</b>\n\nUsta: {name}, {phone}\nHavola: m_{slug}\nHozir: {status}, {until} gacha\nSumma: {amount} soʻm',
     okBtn: '✅ Tasdiqlash',
