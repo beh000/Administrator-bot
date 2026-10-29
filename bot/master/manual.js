@@ -2,15 +2,13 @@
 // ручная запись клиента (звонок, личка) и закрытие времени.
 const { Composer, InlineKeyboard } = require('grammy');
 const { Booking } = require('../../models');
-const { t } = require('../../locales');
 const { atLocal, local, now: nowTz, hhmmToMin } = require('../../utils/time');
 const { parseName, parsePhone, parseTimeRange } = require('../../utils/validate');
 const { availableDates, freeSlots } = require('../../services/slots');
 const { createManualBooking, createBlock, cancelByMaster, moveByMaster, ensureClaimToken } = require('../../services/booking');
 const { defineStep, setStep, clearStep } = require('../steps');
 const { show, prompt, alert, esc, fmtMoney, fmtDay, fmtTime } = require('../ui');
-const { sendTo } = require('../notify');
-const { addressLine } = require('../location');
+const { notifyBooked, notifyCancelled, notifyMoved } = require('./clientNotify');
 const { clientOf, showList } = require('./bookings');
 
 const composer = new Composer();
@@ -91,27 +89,6 @@ composer.callbackQuery(/^mb:inv:([0-9a-f]{24})$/, async (ctx) => {
   return show(ctx, text, kb);
 });
 
-// Клиенту из бота: мастер записал его сам
-async function notifyClientBooked(ctx, client, b) {
-  const lang = client.language || 'ru';
-  const tr = (k, p) => t(lang, k, p);
-  await sendTo(
-    ctx.api,
-    client.telegramId,
-    lang,
-    'mb.clientBooked',
-    {
-      master: esc(ctx.master.name),
-      phone: esc(ctx.master.phone),
-      service: esc(b.serviceTitle),
-      date: fmtDay(tr, b.start),
-      time: fmtTime(b.start),
-      address: addressLine(tr, ctx.master),
-    },
-    { reply_markup: new InlineKeyboard().text(t(lang, 'client.myButton'), 'c:my') },
-  );
-}
-
 // --- Отмена мастером ---
 
 composer.callbackQuery(/^mb:cx:([0-9a-f]{24})$/, async (ctx) => {
@@ -129,27 +106,7 @@ composer.callbackQuery(/^mb:cy:([0-9a-f]{24})$/, async (ctx) => {
   const b = await cancelByMaster(ctx.match[1], ctx.master._id);
   if (!b) return alert(ctx, ctx.t('rem.alreadyHandled'));
   await ctx.answerCallbackQuery({ text: ctx.t(b.kind === 'block' ? 'mb.unblocked' : 'mb.cancelled') }).catch(() => {});
-  // клиенту из бота — сообщение на его языке
-  if (b.clientId?.telegramId) {
-    const lang = b.clientId.language;
-    // о возврате — только если предоплата действительно была внесена
-    const wasPaid = b.prepaymentAmount > 0 && ['payment_review', 'confirmed'].includes(b.previousStatus);
-    const paid = wasPaid ? `\n\n${t(lang, 'mb.clientRefundNote')}` : '';
-    await sendTo(
-      ctx.api,
-      b.clientId.telegramId,
-      lang,
-      'mb.clientCancelled',
-      {
-        master: esc(ctx.master.name),
-        phone: esc(ctx.master.phone),
-        service: esc(b.serviceTitle),
-        date: fmtDay((k) => t(lang, k), b.start),
-        time: fmtTime(b.start),
-      },
-      { append: paid },
-    );
-  }
+  await notifyCancelled(ctx.api, ctx.master, b);
   return showList(ctx, ctx.session.bkRange || 'today');
 });
 
@@ -270,7 +227,7 @@ async function finishManual(ctx, phone) {
   const params = { client: esc(b.manualName), service: esc(b.serviceTitle), date: fmtDay(ctx.t, b.start), time: fmtTime(b.start) };
   if (result.client) {
     // клиент есть в боте — запись сразу его: уведомление и напоминания
-    await notifyClientBooked(ctx, result.client, b);
+    await notifyBooked(ctx.api, ctx.master, result.client, b);
     await ctx.reply(ctx.t('mb.createdLinked', params));
   } else {
     // клиента в боте нет — ссылка, открыв которую он подключит запись
@@ -314,18 +271,7 @@ composer.callbackQuery(/^mb:mok:(\d+)$/, async (ctx) => {
   if (!result.ok) return alert(ctx, ctx.t(result.reason === 'slot_taken' ? 'client.slotTaken' : 'rem.alreadyHandled'));
   const { booking: b, oldStart } = result;
   await ctx.answerCallbackQuery({ text: ctx.t('mb.moved') }).catch(() => {});
-  if (b.clientId?.telegramId) {
-    const lang = b.clientId.language;
-    await sendTo(ctx.api, b.clientId.telegramId, lang, 'mb.clientMoved', {
-      master: esc(ctx.master.name),
-      phone: esc(ctx.master.phone),
-      service: esc(b.serviceTitle),
-      oldDate: fmtDay((k) => t(lang, k), oldStart),
-      oldTime: fmtTime(oldStart),
-      date: fmtDay((k) => t(lang, k), b.start),
-      time: fmtTime(b.start),
-    });
-  }
+  await notifyMoved(ctx.api, ctx.master, b, oldStart);
   return showCard(ctx, String(b._id));
 });
 

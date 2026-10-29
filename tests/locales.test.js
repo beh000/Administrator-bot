@@ -42,7 +42,7 @@ function sourceFiles(dir) {
 
 test('все ключи из кода есть в ru', () => {
   const root = path.join(__dirname, '..');
-  const files = ['bot', 'services', 'utils', 'index.js']
+  const files = ['bot', 'services', 'utils', 'web', 'index.js']
     .map((p) => path.join(root, p))
     .filter(fs.existsSync)
     .flatMap((p) => (fs.statSync(p).isDirectory() ? sourceFiles(p) : [p]));

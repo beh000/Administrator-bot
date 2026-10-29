@@ -46,6 +46,8 @@ module.exports = {
     subscription: '💎 Obuna',
     language: '🌐 Til',
     myAsClient: '📋 Yozilishlarim (mijoz sifatida)',
+    app: '📱 Ilovani ochish',
+    appShort: 'Ilova',
     stats: '📊 Statistika',
     clients: '👥 Mijozlar',
     profile: '🖼 Profil',

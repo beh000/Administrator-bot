@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const { config, assertConfig } = require('./config');
 const { createBot, setCommands } = require('./bot');
 const { startJobs } = require('./bot/jobs');
+const { createServer } = require('./web/server');
 
 // Бот не должен падать из-за случайной ошибки — логируем и работаем дальше
 const { alertError } = require('./bot/alerts');
@@ -62,7 +63,19 @@ async function main() {
   await setCommands(bot).catch((err) => console.error('[bot] Не удалось установить команды:', err.message));
   startJobs(bot);
 
+  // Мини-приложение мастера: сайт и API в том же процессе
+  const server = createServer({
+    botToken: config.BOT_TOKEN,
+    api: bot.api,
+    getBotUsername: () => bot.botInfo.username,
+    onError: (err) => alertError('webapp', err),
+  });
+  server.listen(config.PORT, () => {
+    console.log(`[web] Мини-приложение на порту ${config.PORT}${config.WEBAPP_URL ? ` — ${config.WEBAPP_URL}` : ' (адрес не задан: кнопка в боте скрыта)'}`);
+  });
+
   const stop = async () => {
+    server.close();
     await bot.stop();
     await mongoose.disconnect();
     process.exit(0);

@@ -45,6 +45,8 @@ module.exports = {
     subscription: '💎 Подписка',
     language: '🌐 Язык',
     myAsClient: '📋 Мои записи (как клиент)',
+    app: '📱 Открыть приложение',
+    appShort: 'Приложение',
     stats: '📊 Статистика',
     clients: '👥 Клиенты',
     profile: '🖼 Профиль',

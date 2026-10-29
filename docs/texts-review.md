@@ -39,6 +39,8 @@
 | `menu.subscription` | 💎 Подписка | 💎 Obuna |
 | `menu.language` | 🌐 Язык | 🌐 Til |
 | `menu.myAsClient` | 📋 Мои записи (как клиент) | 📋 Yozilishlarim (mijoz sifatida) |
+| `menu.app` | 📱 Открыть приложение | 📱 Ilovani ochish |
+| `menu.appShort` | Приложение | Ilova |
 | `menu.stats` | 📊 Статистика | 📊 Statistika |
 | `menu.clients` | 👥 Клиенты | 👥 Mijozlar |
 | `menu.profile` | 🖼 Профиль | 🖼 Profil |
