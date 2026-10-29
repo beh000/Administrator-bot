@@ -96,6 +96,7 @@
       tg?.BackButton?.show();
     },
     close() {
+      if (state.tab === 'settings' && S) setTimeout(drawSettings, 0);
       $('#sheet-wrap').hidden = true;
       $('#sheet').innerHTML = '';
       tg?.BackButton?.hide();
@@ -595,6 +596,377 @@
     renderStats();
   }
 
+  // --- Вкладка «Настройки» ---
+  const WD = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+  const DURATIONS = [15, 20, 30, 40, 45, 60, 75, 90, 105, 120, 150, 180, 210, 240, 300, 360];
+  let S = null; // текущие настройки с сервера
+  let edit = null; // что редактируем в листе
+
+  const SL = () => state.L.set;
+  function setErr(err) {
+    return SL().errors[err?.code] || errText(err);
+  }
+  const ruleLabel = (code, v) => {
+    const L = SL();
+    if (code === 'rbk') return v ? fill(L.days, { n: v }) : L.offValue;
+    if (code === 'hor') return fill(L.days, { n: v });
+    if (code === 'ntc' && v >= 60) return fill(L.hours, { n: v / 60 });
+    return fill(L.minutes, { n: v });
+  };
+  const fmtDate = (key) => {
+    const d = keyDate(key);
+    return `${pad(d.getUTCDate())}.${pad(d.getUTCMonth() + 1)}.${d.getUTCFullYear()}`;
+  };
+  const rangeLabel = (r) => (r.from === r.to ? fmtDate(r.from) : `${fmtDate(r.from)} – ${fmtDate(r.to)}`);
+  const switchHtml = (on, attrs) => `<button class="switch${on ? ' on' : ''}" ${attrs} role="switch" aria-checked="${on}"><span></span></button>`;
+  const sel = (id, value, options, label) => `<select id="${id}">${options.map((o) => `<option value="${h(o)}"${String(o) === String(value) ? ' selected' : ''}>${h(label ? label(o) : o)}</option>`).join('')}</select>`;
+
+  async function saveSettings(path, body, { toastOk = true } = {}) {
+    try {
+      S = await api(path, { method: 'POST', body });
+      haptic('success');
+      if (toastOk) toast(SL().saved);
+      // услуги и график влияют на запись — обновим кэш
+      state.me.services = S.services.filter((s) => s.active).map(({ id, title, durationMin, price }) => ({ id, title, durationMin, price }));
+      state.days = [];
+      return S;
+    } catch (err) {
+      haptic('error');
+      const box = $('#serr');
+      if (box) box.innerHTML = `<div class="note err">${h(setErr(err))}</div>`;
+      else toast(setErr(err));
+      return null;
+    }
+  }
+
+  async function renderSettings() {
+    const L = SL();
+    const screen = $('#screen');
+    screen.innerHTML = `<h1>${h(L.title)}</h1>${loading}`;
+    try {
+      S = await api('/api/settings');
+    } catch (err) {
+      screen.innerHTML = `<h1>${h(L.title)}</h1><div class="note err">${h(errText(err))}</div>`;
+      return;
+    }
+    drawSettings();
+  }
+
+  function drawSettings() {
+    if (state.tab !== 'settings') return;
+    const L = SL();
+    const activeN = S.services.filter((s) => s.active).length;
+    const workN = WD.filter((d) => S.schedule[d].working).length;
+    const pp = S.prepayment;
+    const sub = S.subscription;
+    const until = sub.paidUntil ? fmtDate(keyOf(sub.paidUntil)) : '—';
+    const subText = sub.status === 'expired' ? L.subExpired : fill(sub.status === 'trial' ? L.subTrial : L.subActive, { date: until });
+    const row = (s, ico, title, value) => `<button class="row" data-s="${s}"><span class="sico">${ico}</span><span class="grow"><span class="ttl">${h(title)}</span><span class="hint small">${h(value)}</span></span><span class="hint">›</span></button>`;
+    $('#screen').innerHTML = `<h1>${h(L.title)}</h1>
+      <h3>${h(L.groupWork)}</h3>
+      <div class="list">
+        ${row('services', '💅', L.services, fill(L.servicesN, { n: activeN }))}
+        ${row('schedule', '🕐', L.schedule, fill(L.daysWorking, { n: workN }))}
+        ${row('daysoff', '🏖', L.daysOff, S.daysOff.length ? fill(L.periods, { n: S.daysOff.length }) : L.none)}
+        ${row('rules', '⏱', L.rules, `${ruleLabel('step', S.booking.step.value)} · ${ruleLabel('hor', S.booking.hor.value)}`)}
+        ${row('prepay', '💳', L.prepay, pp.enabled ? `${L.on} · ${money(pp.amount)} ${state.L.sum}` : L.off)}
+      </div>
+      <h3>${h(L.groupClients)}</h3>
+      <div class="list">
+        ${row('about', '📝', L.about, S.about || L.aboutEmpty)}
+        ${row('address', '📍', L.address, S.address || (S.hasGeo ? L.geoSet : L.notSet))}
+        ${row('photos', '🖼', L.photos, fill(L.photosN, { n: S.photos }))}
+        ${row('link', '🔗', L.link, S.link.replace('https://', ''))}
+      </div>
+      <h3>${h(L.groupAccount)}</h3>
+      <div class="list">
+        ${row('sub', '💎', L.subscription, subText)}
+        ${row('lang', '🌐', L.language, S.lang === 'uz' ? 'Oʻzbekcha' : 'Русский')}
+      </div>`;
+  }
+
+  // --- Листы настроек ---
+  function openServices() {
+    const L = SL();
+    edit = { kind: 'services' };
+    sheet.open(`${sheetTop(L.services)}
+      <div class="list">${S.services
+        .map((s) => `<div class="row"><button class="grow" data-s="svc" data-id="${h(s.id)}" style="text-align:left"><span class="ttl${s.active ? '' : ' muted'}">${h(s.title)}</span><span class="hint small">${s.durationMin} ${h(state.L.min)} · ${money(s.price)} ${h(state.L.sum)}${s.active ? '' : ` · ${h(L.hidden)}`}</span></button>${switchHtml(s.active, `data-s="svctoggle" data-id="${h(s.id)}"`)}</div>`)
+        .join('')}</div>
+      <div id="serr"></div>
+      <div class="btnrow"><button class="btn sec" data-s="svc" data-id="">${h(L.addService)}</button></div>`);
+  }
+
+  function openService(id) {
+    const L = SL();
+    const s = S.services.find((x) => x.id === id) || { title: '', durationMin: 60, price: '' };
+    edit = { kind: 'service', id };
+    const durs = DURATIONS.includes(s.durationMin) ? DURATIONS : [...DURATIONS, s.durationMin].sort((a, b) => a - b);
+    sheet.open(`${sheetTop(id ? s.title : L.addService.replace(/^＋\s*/, ''))}
+      <label class="field"><span>${h(L.serviceTitle)}</span><input id="svtitle" maxlength="48" value="${h(s.title)}"></label>
+      <div class="two">
+        <label class="field"><span>${h(L.duration)}</span>${sel('svdur', s.durationMin, durs, (v) => `${v} ${state.L.min}`)}</label>
+        <label class="field"><span>${h(L.price)}</span><input id="svprice" inputmode="numeric" maxlength="11" value="${h(s.price === '' ? '' : money(s.price))}" placeholder="100 000"></label>
+      </div>
+      <div id="serr"></div>
+      <button class="btn block" data-s="svcsave">${h(L.save)}</button>
+      <div class="btnrow"><button class="btn sec" data-s="services">${h(state.L.back)}</button></div>`);
+    if (!id) $('#svtitle').focus();
+  }
+
+  async function saveService() {
+    const body = { title: $('#svtitle').value, durationMin: Number($('#svdur').value), price: $('#svprice').value.replace(/\D/g, '') };
+    const path = edit.id ? `/api/settings/services/${edit.id}` : '/api/settings/services';
+    if (await saveSettings(path, body)) openServices();
+  }
+
+  async function toggleService(id) {
+    const s = S.services.find((x) => x.id === id);
+    if (await saveSettings(`/api/settings/services/${id}`, { active: !s.active }, { toastOk: false })) openServices();
+  }
+
+  function openSchedule() {
+    const L = SL();
+    edit = { kind: 'schedule' };
+    sheet.open(`${sheetTop(L.schedule)}
+      <div class="list">${WD.map((d, i) => {
+        const day = S.schedule[d];
+        const hours = day.working ? `${day.start}–${day.end}${day.breaks.length ? ` · ☕ ${day.breaks.map((b) => `${b.start}–${b.end}`).join(', ')}` : ''}` : L.dayOffShort;
+        return `<button class="row" data-s="day" data-id="${d}"><span class="grow"><span class="ttl">${h(state.L.weekdaysFull[i])}</span><span class="hint small">${h(hours)}</span></span><span class="hint">›</span></button>`;
+      }).join('')}</div>`);
+  }
+
+  const TIMES = (() => {
+    const out = [];
+    for (let m = 0; m < 24 * 60; m += 15) out.push(`${pad(Math.floor(m / 60))}:${pad(m % 60)}`);
+    out.push('23:59');
+    return out;
+  })();
+
+  function openDay(d) {
+    const day = JSON.parse(JSON.stringify(S.schedule[d]));
+    edit = { kind: 'day', id: d, day };
+    drawDay();
+  }
+
+  function drawDay() {
+    const L = SL();
+    const { id, day } = edit;
+    const name = state.L.weekdaysFull[WD.indexOf(id)];
+    const breaks = day.breaks
+      .map((b, i) => `<div class="brk"><span class="hint">☕</span>${sel(`bs${i}`, b.start, TIMES)}<span class="hint">–</span>${sel(`be${i}`, b.end, TIMES)}<button class="x" data-s="brkdel" data-id="${i}">✕</button></div>`)
+      .join('');
+    sheet.open(`${sheetTop(name)}
+      <div class="list"><div class="row"><span class="grow ttl">${h(L.working)}</span>${switchHtml(day.working, 'data-s="dayworking"')}</div></div>
+      ${day.working ? `
+        <div class="two" style="margin-top:12px">
+          <label class="field"><span>${h(L.from)}</span>${sel('dstart', day.start, TIMES)}</label>
+          <label class="field"><span>${h(L.to)}</span>${sel('dend', day.end, TIMES)}</label>
+        </div>
+        <h3>${h(L.breaks)}</h3>
+        ${breaks}
+        ${day.breaks.length < 4 ? `<div class="btnrow" style="margin-top:0;margin-bottom:8px"><button class="btn sec" data-s="brkadd">${h(L.addBreak)}</button></div>` : ''}` : ''}
+      <div id="serr"></div>
+      <button class="btn block" data-s="daysave">${h(L.save)}</button>
+      ${edit.day.working ? `<div class="btnrow"><button class="btn sec" data-s="dayall">${h(L.saveAll)}</button></div>` : ''}
+      <div class="btnrow"><button class="btn sec" data-s="schedule">${h(state.L.back)}</button></div>`);
+  }
+
+  // Считать значения полей дня из формы в edit.day
+  function readDay() {
+    const { day } = edit;
+    if (!day.working) return day;
+    day.start = $('#dstart').value;
+    day.end = $('#dend').value;
+    day.breaks = day.breaks.map((b, i) => ({ start: $(`#bs${i}`).value, end: $(`#be${i}`).value }));
+    return day;
+  }
+
+  async function saveDay(all) {
+    const day = readDay();
+    const days = all ? WD.filter((d) => S.schedule[d].working || d === edit.id) : [edit.id];
+    for (const d of days) {
+      // eslint-disable-next-line no-await-in-loop
+      const r = await saveSettings(`/api/settings/schedule/${d}`, day, { toastOk: false });
+      if (!r) return;
+    }
+    toast(SL().saved);
+    openSchedule();
+  }
+
+  function openDaysOff(warn) {
+    const L = SL();
+    edit = { kind: 'daysoff' };
+    const today = state.me.today;
+    sheet.open(`${sheetTop(L.daysOff)}
+      ${warn ? `<div class="note">${h(fill(L.offWarn, { n: warn }))}</div>` : ''}
+      ${S.daysOff.length ? `<div class="list">${S.daysOff.map((r) => `<div class="row"><span class="grow ttl">🏖 ${h(rangeLabel(r))}</span><button class="x" data-s="offdel" data-from="${r.from}" data-to="${r.to}">✕</button></div>`).join('')}</div>` : `<div class="note">${h(L.offEmpty)}</div>`}
+      <h3>${h(L.addOff.replace(/^＋\s*/, ''))}</h3>
+      <div class="two">
+        <label class="field"><span>${h(L.offFrom)}</span><input id="offfrom" type="date" min="${today}" value="${today}"></label>
+        <label class="field"><span>${h(L.offTo)}</span><input id="offto" type="date" min="${today}" value="${today}"></label>
+      </div>
+      <div id="serr"></div>
+      <button class="btn block" data-s="offadd">${h(L.addOff)}</button>`);
+  }
+
+  async function addDaysOff() {
+    const from = $('#offfrom').value;
+    let to = $('#offto').value;
+    if (to < from) to = from;
+    const r = await saveSettings('/api/settings/daysoff', { from, to });
+    if (r) openDaysOff(r.warnBookings);
+  }
+
+  async function delDaysOff(from, to) {
+    if (await saveSettings('/api/settings/daysoff/remove', { from, to }, { toastOk: false })) openDaysOff();
+  }
+
+  function openRules() {
+    const L = SL();
+    edit = { kind: 'rules' };
+    const titles = { step: L.ruleStep, buf: L.ruleBuf, hor: L.ruleHor, ntc: L.ruleNtc, rbk: L.ruleRbk };
+    sheet.open(`${sheetTop(L.rules)}
+      ${Object.entries(S.booking)
+        .map(([code, { value, values }]) => `<h3>${h(titles[code] || code)}</h3><div class="hscroll">${values.map((v) => `<button class="opt${v === value ? ' on' : ''}" data-s="rule" data-id="${code}" data-v="${v}">${h(ruleLabel(code, v))}</button>`).join('')}</div>`)
+        .join('')}
+      <div id="serr"></div>`);
+  }
+
+  async function setRule(code, v) {
+    if (await saveSettings('/api/settings/booking', { [code]: v }, { toastOk: false })) {
+      openRules();
+      toast(SL().saved, 1200);
+    }
+  }
+
+  function openPrepay() {
+    const L = SL();
+    const pp = S.prepayment;
+    edit = { kind: 'prepay' };
+    sheet.open(`${sheetTop(L.prepay)}
+      <div class="note">${h(L.prepayHint)}</div>
+      <div class="list"><div class="row"><span class="grow ttl">${h(L.prepayOn)}</span>${switchHtml(pp.enabled, 'data-s="pptoggle"')}</div></div>
+      <div style="height:12px"></div>
+      <label class="field"><span>${h(L.amount)}</span><input id="ppamount" inputmode="numeric" maxlength="11" value="${pp.amount ? money(pp.amount) : ''}" placeholder="50 000"></label>
+      <label class="field"><span>${h(L.card)}</span><input id="ppcard" inputmode="numeric" maxlength="19" value="${h(pp.cardNumber.replace(/(\d{4})(?=\d)/g, '$1 '))}" placeholder="8600 0000 0000 0000"></label>
+      <label class="field"><span>${h(L.holder)}</span><input id="ppholder" maxlength="64" value="${h(pp.cardHolder)}"></label>
+      <div id="serr"></div>
+      <button class="btn block" data-s="ppsave">${h(L.save)}</button>`);
+  }
+
+  function readPrepay() {
+    const body = {};
+    const amount = $('#ppamount').value.replace(/\D/g, '');
+    const card = $('#ppcard').value.replace(/\D/g, '');
+    const holder = $('#ppholder').value.trim();
+    if (amount) body.amount = amount;
+    if (card) body.cardNumber = card;
+    if (holder) body.cardHolder = holder;
+    return body;
+  }
+
+  async function savePrepay(enabled) {
+    const body = readPrepay();
+    if (typeof enabled === 'boolean') body.enabled = enabled;
+    if (await saveSettings('/api/settings/prepayment', body)) openPrepay();
+  }
+
+  function openText(kind) {
+    const L = SL();
+    edit = { kind };
+    const isAbout = kind === 'about';
+    sheet.open(`${sheetTop(isAbout ? L.about : L.address)}
+      <div class="note">${h(isAbout ? L.aboutHint : L.addressHint)}</div>
+      ${isAbout
+        ? `<label class="field"><textarea id="txt" maxlength="500" rows="6">${h(S.about)}</textarea></label>`
+        : `<label class="field"><input id="txt" maxlength="200" value="${h(S.address)}"></label>${S.hasGeo ? `<div class="hint small" style="margin:-4px 4px 10px">📍 ${h(L.geoSet)}</div>` : ''}`}
+      <div id="serr"></div>
+      <button class="btn block" data-s="textsave">${h(L.save)}</button>`);
+  }
+
+  async function saveText() {
+    const value = $('#txt').value;
+    if (await saveSettings('/api/settings/profile', { [edit.kind]: value })) {
+      sheet.close();
+      drawSettings();
+    }
+  }
+
+  function openInfo(kind) {
+    const L = SL();
+    if (kind === 'photos') return sheet.open(`${sheetTop(L.photos)}<div class="note">${h(L.photosHint)}</div>`);
+    if (kind === 'sub') return sheet.open(`${sheetTop(L.subscription)}<div class="note">${h(L.subHint)}</div>`);
+    if (kind === 'link') {
+      state.invite = { text: S.link, shareUrl: `https://t.me/share/url?url=${encodeURIComponent(S.link)}` };
+      return sheet.open(`${sheetTop(L.link)}<div class="note">${h(L.linkHint)}</div><div class="code">${h(S.link)}</div>
+        <button class="btn block" data-act="share">${h(state.L.send)}</button>
+        <div class="btnrow"><button class="btn sec" data-act="copy">${h(state.L.copy)}</button></div>`);
+    }
+    if (kind === 'lang') {
+      return sheet.open(`${sheetTop(L.language)}<div class="list">
+        ${[['ru', 'Русский'], ['uz', 'Oʻzbekcha']].map(([code, name]) => `<button class="row" data-s="setlang" data-id="${code}"><span class="grow ttl">${name}</span>${S.lang === code ? '<span>✓</span>' : ''}</button>`).join('')}</div>`);
+    }
+    return undefined;
+  }
+
+  async function setLang(lang) {
+    if (!(await saveSettings('/api/settings/language', { lang }, { toastOk: false }))) return;
+    state.me.lang = lang;
+    state.L = window.I18N[lang];
+    document.documentElement.lang = lang;
+    document.querySelectorAll('#tabs button').forEach((b) => { $('.lbl', b).textContent = state.L.tabs[b.dataset.tab]; });
+    sheet.close();
+    drawSettings();
+    toast(SL().saved);
+  }
+
+  // Действия настроек: data-s на кнопке
+  function settingsAction(t) {
+    const { s, id } = t.dataset;
+    switch (s) {
+      case 'services': return openServices();
+      case 'svc': return openService(id);
+      case 'svcsave': return saveService();
+      case 'svctoggle': return toggleService(id);
+      case 'schedule': return openSchedule();
+      case 'day': return openDay(id);
+      case 'dayworking':
+        readDay();
+        edit.day.working = !edit.day.working;
+        return drawDay();
+      case 'brkadd': {
+        readDay();
+        const last = edit.day.breaks[edit.day.breaks.length - 1];
+        edit.day.breaks.push(last ? { start: last.end, end: last.end } : { start: '13:00', end: '14:00' });
+        return drawDay();
+      }
+      case 'brkdel':
+        readDay();
+        edit.day.breaks.splice(Number(id), 1);
+        return drawDay();
+      case 'daysave': return saveDay(false);
+      case 'dayall': return saveDay(true);
+      case 'daysoff': return openDaysOff();
+      case 'offadd': return addDaysOff();
+      case 'offdel': return delDaysOff(t.dataset.from, t.dataset.to);
+      case 'rules': return openRules();
+      case 'rule': return setRule(id, Number(t.dataset.v));
+      case 'prepay': return openPrepay();
+      case 'pptoggle': return savePrepay(!S.prepayment.enabled);
+      case 'ppsave': return savePrepay();
+      case 'about':
+      case 'address': return openText(s);
+      case 'textsave': return saveText();
+      case 'photos':
+      case 'sub':
+      case 'link':
+      case 'lang': return openInfo(s);
+      case 'setlang': return setLang(id);
+      default: return undefined;
+    }
+  }
+
   // --- Вкладки ---
   function setTab(tab) {
     state.tab = tab;
@@ -603,6 +975,8 @@
     if (tab === 'calendar') renderCalendar();
     if (tab === 'clients') renderClients();
     if (tab === 'stats') renderStats();
+    if (tab === 'settings') renderSettings();
+    if (tab !== 'settings') S = null;
   }
 
   // --- События (делегирование) ---
@@ -614,6 +988,7 @@
     }
     const d = t.dataset;
     if (d.tab) return setTab(d.tab);
+    if (d.s) return settingsAction(t);
     if (d.day) {
       haptic('light');
       state.selected = d.day;

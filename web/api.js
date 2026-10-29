@@ -312,6 +312,8 @@ route('GET', /^\/api\/stats$/, async ({ master, query }) => {
   };
 });
 
+require('./settings')(route, fail);
+
 // Найти мастера по пользователю Telegram и выполнить маршрут
 async function handle({ method, path, query, body, tgUser, api, botUsername }) {
   const r = routes.find((x) => x.method === method && x.pattern.test(path));

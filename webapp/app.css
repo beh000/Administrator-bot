@@ -41,7 +41,7 @@ h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: v
   display: flex; background: var(--card); border-top: 1px solid var(--line);
   padding-bottom: env(safe-area-inset-bottom);
 }
-.tabs button { flex: 1; height: var(--tabbar); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--hint); font-size: 12px; }
+.tabs button { flex: 1; min-width: 0; height: var(--tabbar); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--hint); font-size: 12px; }
 .tabs button .ico { font-size: 20px; filter: grayscale(1); opacity: .7; }
 .tabs button.on { color: var(--accent); font-weight: 600; }
 .tabs button.on .ico { filter: none; opacity: 1; }
@@ -101,6 +101,7 @@ h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: v
 .row:last-child { border-bottom: 0; }
 .row .grow { flex: 1; min-width: 0; }
 .row .grow > span { display: block; }
+.row .grow > .hint { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row .ttl { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row .val { font-weight: 600; font-variant-numeric: tabular-nums; }
 .avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--soft); color: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: 700; flex: none; }
@@ -161,6 +162,20 @@ h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: v
 .steps { color: var(--hint); font-size: 13px; margin: -6px 0 12px; }
 .chosen { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .chosen .chip { background: var(--card); color: var(--text); font-size: 13px; padding: 4px 10px; }
+
+/* --- Настройки --- */
+.sico { width: 30px; height: 30px; border-radius: 8px; background: var(--soft); display: flex; align-items: center; justify-content: center; font-size: 16px; flex: none; }
+.switch { position: relative; width: 50px; height: 30px; border-radius: 15px; background: var(--line); flex: none; transition: background .15s; }
+.switch span { position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .15s; }
+.switch.on { background: var(--ok); }
+.switch.on span { transform: translateX(20px); }
+.brk { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.brk select { flex: 1; height: 44px; border-radius: 12px; border: 0; background: var(--card); color: var(--text); font: inherit; font-weight: 600; text-align: center; -webkit-appearance: none; appearance: none; }
+.brk .x, .row .x { width: 32px; height: 32px; border-radius: 50%; background: var(--card); color: var(--danger); flex: none; }
+.row .x { background: var(--bg); }
+.field textarea { width: 100%; border-radius: 12px; border: 0; background: var(--card); padding: 12px 14px; font: inherit; color: var(--text); outline: none; resize: vertical; }
+.field textarea:focus { outline: 2px solid var(--accent); }
+.field input[type="date"] { -webkit-appearance: none; appearance: none; text-align: center; font-weight: 600; }
 
 /* --- Сообщение снизу --- */
 .toast {

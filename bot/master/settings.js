@@ -52,4 +52,4 @@ composer.callbackQuery(/^set:(step|buf|hor|ntc|rbk):(\d+)$/, async (ctx) => {
   return show(ctx);
 });
 
-module.exports = { composer, show };
+module.exports = { composer, show, SETTINGS };

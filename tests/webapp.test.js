@@ -41,5 +41,6 @@ test('мини-приложение: тексты ru и uz с одинаковы
   // все state.L.<ключ> из app.js существуют
   const src = require('fs').readFileSync(require('path').join(__dirname, '../webapp/app.js'), 'utf8');
   const used = new Set([...src.matchAll(/\bL\.([a-zA-Z]+)/g)].map((m) => m[1]));
-  for (const k of used) assert.ok(k in ru, `нет ключа ${k}`);
+  // L — либо весь словарь, либо раздел настроек (L = SL())
+  for (const k of used) assert.ok(k in ru || k in ru.set, `нет ключа ${k}`);
 });
