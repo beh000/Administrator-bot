@@ -25,13 +25,13 @@
 | `common.error` | ⚠️ Что-то пошло не так. Попробуйте ещё раз или откройте /menu. | ⚠️ Xatolik yuz berdi. Qaytadan urinib koʻring yoki /menu ni oching. |
 | `common.sum` | сум | soʻm |
 | `role.choose` | Кто вы?<br><br><b>Мастер</b> — принимаете клиентов и хотите онлайн-запись.<br><b>Клиент</b> — хотите записаться к мастеру. | Siz kimsiz?<br><br><b>Usta</b> — mijozlarni qabul qilasiz va ular onlayn yozilishini xohlaysiz.<br><b>Mijoz</b> — ustaga yozilmoqchisiz. |
-| `role.master` | ✂️ Я мастер | ✂️ Men ustaman |
+| `role.master` | 💼 Я мастер | 💼 Men ustaman |
 | `role.client` | 🙋 Я клиент | 🙋 Men mijozman |
 | `menu.master` | <b>{name}</b>, это ваше меню.<br>{sub} | <b>{name}</b>, bu sizning menyungiz.<br>{sub} |
 | `menu.today` | 📅 Сегодня | 📅 Bugun |
 | `menu.tomorrow` | 📅 Завтра | 📅 Ertaga |
 | `menu.week` | 📅 Неделя | 📅 Hafta |
-| `menu.services` | ⚙️ Услуги | ⚙️ Xizmatlar |
+| `menu.services` | 💼 Услуги | 💼 Xizmatlar |
 | `menu.schedule` | 🕐 График и выходные | 🕐 Ish jadvali |
 | `menu.prepayment` | 💳 Предоплата | 💳 Oldindan toʻlov |
 | `menu.location` | 📍 Адрес | 📍 Manzil |

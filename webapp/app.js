@@ -764,7 +764,7 @@
     $('#screen').innerHTML = `<h1>${h(L.title)}</h1>
       <h3>${h(L.groupWork)}</h3>
       <div class="list">
-        ${row('services', '💅', L.services, fill(L.servicesN, { n: activeN }))}
+        ${row('services', '💼', L.services, fill(L.servicesN, { n: activeN }))}
         ${row('schedule', '🕐', L.schedule, fill(L.daysWorking, { n: workN }))}
         ${row('daysoff', '🏖', L.daysOff, S.daysOff.length ? fill(L.periods, { n: S.daysOff.length }) : L.none)}
         ${row('rules', '⏱', L.rules, `${ruleLabel('step', S.booking.step.value)} · ${ruleLabel('hor', S.booking.hor.value)}`)}

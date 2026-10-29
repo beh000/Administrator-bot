@@ -29,7 +29,7 @@ module.exports = {
 
   role: {
     choose: 'Siz kimsiz?\n\n<b>Usta</b> — mijozlarni qabul qilasiz va ular onlayn yozilishini xohlaysiz.\n<b>Mijoz</b> — ustaga yozilmoqchisiz.',
-    master: '✂️ Men ustaman',
+    master: '💼 Men ustaman',
     client: '🙋 Men mijozman',
   },
 
@@ -38,7 +38,7 @@ module.exports = {
     today: '📅 Bugun',
     tomorrow: '📅 Ertaga',
     week: '📅 Hafta',
-    services: '⚙️ Xizmatlar',
+    services: '💼 Xizmatlar',
     schedule: '🕐 Ish jadvali',
     prepayment: '💳 Oldindan toʻlov',
     location: '📍 Manzil',
