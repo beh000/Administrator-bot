@@ -167,6 +167,14 @@ function registerClient(route, fail) {
     };
   });
 
+  // «Позвонить мастеру»: номер мастера контактом в чат с ботом
+  route('POST', /^\/api\/c\/m\/([a-z0-9]+)\/contact$/, async ({ client, params, api }) => {
+    const m = await masterBySlug(params[0]);
+    if (!m.phone) fail(404, 'not_found');
+    await api.sendContact(client.telegramId, m.phone, m.name || m.phone);
+    return { ok: true };
+  });
+
   route('GET', /^\/api\/c\/m\/([a-z0-9]+)\/photos\/([0-5])$/, async ({ params, api }) => {
     const m = await masterBySlug(params[0]);
     const fileId = m.photos[Number(params[1])];

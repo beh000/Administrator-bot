@@ -11,7 +11,8 @@ window.ClientApp = (() => {
 
   const h = (s) => K.h(s);
   const err = (e) => C.errors[e?.code] || K.errText(e);
-  const callBtn = (phone) => (phone ? `<a class="btn sec" href="tel:${h(phone)}">📞 ${h(C.call)}</a>` : '');
+  // tel: в Telegram не работает — лист с номером: отправить контактом в чат / скопировать
+  const callBtn = (phone, slug) => (phone && slug ? `<button class="btn sec" data-c="call" data-slug="${h(slug)}" data-phone="${h(phone)}">📞 ${h(C.call)}</button>` : '');
   const mapsUrl = (g) => `https://maps.google.com/?q=${g.lat},${g.lng}`;
 
   // --- Главная: мои записи и мои мастера ---
@@ -71,7 +72,7 @@ window.ClientApp = (() => {
       ${p.rating ? `<div class="hint" style="margin:0 0 8px">⭐ ${p.rating.avg} · ${h(K.fill(C.reviews, { n: p.rating.count }))}</div>` : ''}
       ${p.about ? `<p class="about">${h(p.about)}</p>` : ''}
       ${p.address || p.geo ? `<div class="list" style="margin-bottom:12px"><div class="row"><span class="grow"><span class="ttl">📍 ${h(p.address || C.onMap)}</span></span>${p.geo ? `<button class="btn sec" style="flex:none;height:36px;padding:0 12px" data-c="map">🗺 ${h(C.map)}</button>` : ''}</div></div>` : ''}
-      ${!p.available ? `<div class="note err">${h(K.fill(C.unavailable, { phone: p.phone }))}</div><div class="btnrow">${callBtn(p.phone)}</div>` : `
+      ${!p.available ? `<div class="note err">${h(K.fill(C.unavailable, { phone: p.phone }))}</div><div class="btnrow">${callBtn(p.phone, p.slug)}</div>` : `
         ${p.prepay ? `<div class="note">💳 ${h(K.fill(C.prepayNote, { amount: K.money(p.prepay.amount), minutes: p.prepay.minutes }))}</div>` : ''}
         <h3>${h(C.chooseService)}</h3>
         ${services || `<div class="note">${h(K.fill(C.noServices, { phone: p.phone }))}</div>`}`}`;
@@ -229,7 +230,7 @@ window.ClientApp = (() => {
     }
     const row = [];
     if (b.active && m.geo) row.push(`<button class="btn sec" data-c="map">🗺 ${h(C.map)}</button>`);
-    if (m.phone) row.push(callBtn(m.phone));
+    if (m.phone) row.push(callBtn(m.phone, m.slug));
     if (row.length) parts.push(`<div class="btnrow">${row.join('')}</div>`);
     if (b.canReschedule) parts.push(`<div class="btnrow"><button class="btn sec" data-c="resched">🔄 ${h(C.reschedule)}</button></div>`);
     if (b.canCancel) parts.push(`<div class="btnrow"><button class="btn danger" data-c="cancel">❌ ${h(C.cancel)}</button></div>`);
@@ -291,6 +292,10 @@ window.ClientApp = (() => {
         flow.start = d.id;
         return confirmStep();
       case 'contact': return shareContact();
+      case 'call': {
+        const name = (current && K.sheet.isOpen ? current.master?.name : null) || page?.name || '';
+        return K.callSheet(d.phone, name, `/api/c/m/${d.slug}/contact`, {});
+      }
       case 'book': return book();
       case 'booking': return openBooking(d.id);
       case 'cancel': return cancel();

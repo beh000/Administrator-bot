@@ -7,6 +7,7 @@ const { Master, Booking, Client, SubscriptionPayment } = require('../models');
 const { config } = require('../config');
 const { t } = require('../locales');
 const { masterLink } = require('../utils/ids');
+const { parsePhone } = require('../utils/validate');
 const { reviewPayment } = require('../services/payments');
 const { daysLeft, submitSubscriptionPayment, PERIOD_DAYS } = require('../services/subscription');
 const { REFERRAL_TRIAL_BONUS_DAYS, REFERRAL_REWARD_DAYS, referralStats } = require('../services/referral');
@@ -106,6 +107,16 @@ module.exports = function registerExtras(route, fail) {
     const client = await Client.findById(booking.clientId);
     await notifyPayment(api, master, client, booking, approved);
     return { ok: true, status: booking.status };
+  });
+
+  // --- «Позвонить»: tel: внутри Telegram не открывается, поэтому присылаем
+  // номер контактом в чат с ботом — по нему звонят одним нажатием ---
+  route('POST', /^\/api\/contact\/send$/, async ({ master, body, api }) => {
+    const phone = parsePhone(body.phone);
+    if (!phone) fail(400, 'bad_phone');
+    const name = String(body.name || '').trim().slice(0, 64) || phone;
+    await api.sendContact(master.telegramId, phone, name);
+    return { ok: true };
   });
 
   // --- Подписка ---

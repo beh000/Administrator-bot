@@ -166,6 +166,43 @@
     else window.open(url, '_blank');
   }
 
+  // «Позвонить»: Telegram не открывает tel: из мини-приложения — отправляем номер
+  // контактом в чат с ботом (там «Позвонить» работает) или копируем
+  let callTarget = null;
+  function callSheet(phone, name, sendPath, sendBody) {
+    const L = state.L;
+    callTarget = { phone, sendPath, sendBody };
+    sheet.open(`${sheetTop(name || L.call)}
+      <div class="code" style="font-size:22px;font-weight:700;text-align:center;user-select:all">${h(phone)}</div>
+      <div class="note">${h(L.callHint)}</div>
+      <button class="btn block" data-call="send">📲 ${h(L.callSend)}</button>
+      <div class="btnrow"><button class="btn sec" data-call="copy">${h(L.callCopy)}</button></div>`);
+  }
+  async function callAction(kind) {
+    if (!callTarget) return;
+    if (kind === 'copy') return copyText(callTarget.phone);
+    if (kind === 'chat') return tg?.close ? tg.close() : undefined;
+    try {
+      await api(callTarget.sendPath, { method: 'POST', body: callTarget.sendBody });
+      haptic('success');
+      const btn = $('[data-call="send"]');
+      if (btn) {
+        btn.textContent = `💬 ${state.L.callToChat}`;
+        btn.dataset.call = 'chat';
+      }
+      const note = $('#sheet .note');
+      if (note) note.textContent = `✅ ${state.L.callSent}`;
+    } catch (err) {
+      haptic('error');
+      toast(errText(err));
+    }
+    return undefined;
+  }
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-call]');
+    if (b) callAction(b.dataset.call);
+  });
+
   // --- Нижний лист (детали, формы) ---
   const sheet = {
     open(html) {
@@ -286,7 +323,7 @@
       btns.push(`<div class="btnrow"><button class="btn ok" data-act="came" data-id="${b.id}">✅ ${h(L.came)}</button><button class="btn danger" data-act="noshow" data-id="${b.id}">🚫 ${h(L.noShow)}</button></div>`);
     }
     const line = [];
-    if (c.phone) line.push(`<a class="btn sec" href="tel:${h(c.phone)}">📞 ${h(L.call)}</a>`);
+    if (c.phone) line.push(`<button class="btn sec" data-act="call" data-phone="${h(c.phone)}" data-name="${h(c.name || '')}">📞 ${h(L.call)}</button>`);
     if (b.canMove) line.push(`<button class="btn sec" data-act="move" data-id="${b.id}">🔄 ${h(L.move)}</button>`);
     if (line.length) btns.push(`<div class="btnrow">${line.join('')}</div>`);
     if (b.canInvite) btns.push(`<div class="btnrow"><button class="btn sec" data-act="invite" data-id="${b.id}">📤 ${h(L.invite)}</button></div>`);
@@ -644,7 +681,7 @@
     sheet.open(`${sheetTop(`${c.name}${c.telegramId ? ' 🤖' : ''}`)}
       <div class="kv">${rows.map(([k, v]) => `<div class="r"><span>${h(k)}</span><span>${h(v)}</span></div>`).join('')}</div>
       <button class="btn block" data-act="again">＋ ${h(L.bookAgain)}</button>
-      ${c.phone ? `<div class="btnrow"><a class="btn sec" href="tel:${h(c.phone)}">📞 ${h(L.call)}</a></div>` : ''}
+      ${c.phone ? `<div class="btnrow"><button class="btn sec" data-act="call" data-phone="${h(c.phone)}" data-name="${h(c.name || '')}">📞 ${h(L.call)}</button></div>` : ''}
       ${hist ? `<h3>${h(L.history)}</h3><div class="list">${hist}</div>` : ''}`);
   }
 
@@ -1369,6 +1406,7 @@
       case 'came': return markVisit(d.id, true);
       case 'noshow': return markVisit(d.id, false);
       case 'reviews': return openReviews();
+      case 'call': return callSheet(d.phone, d.name, '/api/contact/send', { phone: d.phone, name: d.name });
       case 'payok': return reviewPayment(d.id, true);
       case 'payno': return reviewPayment(d.id, false);
       case 'invite': return showInvite(d.id);
@@ -1400,7 +1438,7 @@
   // Общие помощники — для клиентской части (client.js)
   const core = {
     tg, state, $, h, fill, money, hhmm, keyOf, keyDate, wd, addDays, dayLabel, whenLabel, haptic, toast, confirmBox,
-    errText, api, apiImage, loadImages, apiUpload, pickFiles, copyText, openLink, sheet, sheetTop, loading, fatal,
+    errText, api, apiImage, callSheet, loadImages, apiUpload, pickFiles, copyText, openLink, sheet, sheetTop, loading, fatal,
     openTelegram: (url) => (tg?.openTelegramLink ? tg.openTelegramLink(url) : window.open(url, '_blank')),
   };
 
