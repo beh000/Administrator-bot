@@ -70,6 +70,13 @@ async function main() {
     getBotUsername: () => bot.botInfo.username,
     onError: (err) => alertError('webapp', err),
   });
+  // Кнопка «Приложение» у поля ввода для всех (клиентам — «Мои записи» и запись);
+  // мастерам она ставится в их чате отдельно, в меню мастера
+  if (config.WEBAPP_URL) {
+    bot.api
+      .setChatMenuButton({ menu_button: { type: 'web_app', text: 'Navbatchi', web_app: { url: config.WEBAPP_URL } } })
+      .catch((err) => console.error('[bot] Не удалось поставить кнопку приложения:', err.description || err.message));
+  }
   server.listen(config.PORT, () => {
     console.log(`[web] Мини-приложение на порту ${config.PORT}${config.WEBAPP_URL ? ` — ${config.WEBAPP_URL}` : ' (адрес не задан: кнопка в боте скрыта)'}`);
   });

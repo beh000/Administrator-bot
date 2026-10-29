@@ -234,6 +234,7 @@ module.exports = {
   },
 
   client: {
+    openApp: '📱 Ilovada yozilish',
     home: 'Yozilish uchun usta bergan havolani oching.',
     homeWithMasters: 'Sizning ustalaringiz — bir bosishda qayta yoziling. Yangi ustaga — uning havolasi orqali.',
     bookAt: '📅 Yozilish: {name}',

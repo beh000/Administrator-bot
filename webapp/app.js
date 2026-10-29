@@ -1321,6 +1321,7 @@
       if (e.target.classList.contains('sheet-backdrop')) sheet.close();
       return;
     }
+    if (state.mode === 'client') return window.ClientApp.onClick(t);
     const d = t.dataset;
     if (d.tab) return setTab(d.tab);
     if (d.s) return settingsAction(t);
@@ -1382,6 +1383,7 @@
   });
 
   document.addEventListener('input', (e) => {
+    if (state.mode === 'client') return;
     if (e.target.id === 'csearch') drawClients(e.target.value);
     if (e.target.id === 'cname') {
       if (flow?.client && flow.client.name !== e.target.value) flow.client = null;
@@ -1394,6 +1396,13 @@
     $('#tabs').hidden = true;
     $('#screen').innerHTML = `<div class="empty"><div class="big">📱</div>${h(text)}</div>`;
   }
+
+  // Общие помощники — для клиентской части (client.js)
+  const core = {
+    tg, state, $, h, fill, money, hhmm, keyOf, keyDate, wd, addDays, dayLabel, whenLabel, haptic, toast, confirmBox,
+    errText, api, apiImage, loadImages, apiUpload, pickFiles, copyText, openLink, sheet, sheetTop, loading, fatal,
+    openTelegram: (url) => (tg?.openTelegramLink ? tg.openTelegramLink(url) : window.open(url, '_blank')),
+  };
 
   async function init() {
     if (tg) {
@@ -1409,12 +1418,21 @@
     state.L = window.I18N[guess];
     $('#screen').innerHTML = loading;
     if (!tg?.initData) return fatal(state.L.openInTelegram);
-    try {
-      state.me = await api('/api/me');
-    } catch (err) {
-      if (err.status === 403) return fatal(state.L.notMaster);
-      if (err.status === 401) return fatal(state.L.expired);
-      return fatal(errText(err));
+    // ?m=<slug> (или start_param m_<slug>) — страница мастера для клиента
+    const startParam = String(tg.initDataUnsafe?.start_param || '');
+    const slug = new URLSearchParams(window.location.search).get('m') || (startParam.startsWith('m_') ? startParam.slice(2) : '');
+    if (!slug) {
+      try {
+        if ((await api('/api/c/role')).master) state.me = await api('/api/me');
+      } catch (err) {
+        if (err.status === 401) return fatal(state.L.expired);
+        return fatal(errText(err));
+      }
+    }
+    // не мастер или открыл ссылку мастера — режим клиента
+    if (!state.me) {
+      state.mode = 'client';
+      return window.ClientApp.start(core, { slug: slug.toLowerCase() });
     }
     state.L = window.I18N[state.me.lang] || window.I18N.ru;
     document.documentElement.lang = state.me.lang;

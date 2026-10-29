@@ -194,3 +194,6 @@ module.exports = function registerExtras(route, fail) {
     };
   });
 };
+
+module.exports.uploadImage = uploadImage;
+module.exports.downloadImage = downloadImage;

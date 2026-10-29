@@ -43,4 +43,7 @@ test('мини-приложение: тексты ru и uz с одинаковы
   const used = new Set([...src.matchAll(/\bL\.([a-zA-Z]+)/g)].map((m) => m[1]));
   // L — либо весь словарь, либо раздел настроек (L = SL())
   for (const k of used) assert.ok(k in ru || k in ru.set, `нет ключа ${k}`);
+  // клиентская часть: C.<ключ> — раздел c
+  const csrc = require('fs').readFileSync(require('path').join(__dirname, '../webapp/client.js'), 'utf8');
+  for (const [, k] of csrc.matchAll(/\bC\.([a-zA-Z]+)/g)) assert.ok(k in ru.c, `нет ключа c.${k}`);
 });

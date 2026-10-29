@@ -1,11 +1,10 @@
 // «Мои записи» клиента: список, карточка, отмена, перенос
 const { Composer, InlineKeyboard } = require('grammy');
 const { Booking, Master } = require('../../models');
-const { t } = require('../../locales');
 const { cancelByClient, canClientChange } = require('../../services/booking');
 const { show, alert, esc, fmtMoney, fmtDay, fmtTime } = require('../ui');
-const { sendTo } = require('../notify');
 const { addressLine, hasGeo, sendMasterLocation } = require('../location');
+const { notifyMasterCancelled } = require('./masterNotify');
 
 const composer = new Composer();
 
@@ -124,23 +123,7 @@ composer.callbackQuery(/^c:cy:([0-9a-f]{24})$/, async (ctx) => {
   await show(ctx, text.join('\n'), new InlineKeyboard().text(ctx.t('client.myButton'), 'c:my'));
 
   // о неоплаченной записи мастер ещё не знал — не беспокоим
-  if (master && result.previousStatus !== 'pending_payment') {
-    const lang = master.language;
-    await sendTo(
-      ctx.api,
-      master.telegramId,
-      lang,
-      'notify.cancelled',
-      {
-        client: esc(ctx.user.name),
-        phone: esc(ctx.user.phone),
-        service: esc(b.serviceTitle),
-        date: fmtDay((k) => t(lang, k), b.start),
-        time: fmtTime(b.start),
-      },
-      { reply_markup: new InlineKeyboard().url(t(lang, 'notify.writeBtn'), `tg://user?id=${ctx.from.id}`) },
-    );
-  }
+  if (master && result.previousStatus !== 'pending_payment') await notifyMasterCancelled(ctx.api, master, ctx.user, b);
   return undefined;
 });
 

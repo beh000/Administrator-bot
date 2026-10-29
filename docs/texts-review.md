@@ -185,6 +185,7 @@
 | `sub.extendedByAdmin` | 🎁 Подписка продлена на {days} дн. — до {until}. | 🎁 Obuna {days} kunga uzaytirildi — {until} gacha. |
 | `sub.reminder` | ⏳ <b>Подписка заканчивается {until}</b> (осталось дней: {days}).<br><br>После этого клиенты не смогут записываться онлайн. Продлите за {price} сум. | ⏳ <b>Obuna {until} kuni tugaydi</b> (qolgan kunlar: {days}).<br><br>Shundan soʻng mijozlar onlayn yozila olmaydi. {price} soʻmga uzaytiring. |
 | `sub.expiredNotice` | ⚠️ <b>Подписка закончилась.</b><br><br>Новые онлайн-записи приостановлены, уже созданные записи остаются в силе. Продлите за {price} сум, чтобы клиенты снова могли записываться. | ⚠️ <b>Obuna tugadi.</b><br><br>Yangi onlayn yozilishlar toʻxtatildi, mavjud yozilishlar kuchda qoladi. Mijozlar yana yozila olishi uchun {price} soʻmga uzaytiring. |
+| `client.openApp` | 📱 Записаться в приложении | 📱 Ilovada yozilish |
 | `client.home` | Чтобы записаться, откройте ссылку, которую дал вам мастер. | Yozilish uchun usta bergan havolani oching. |
 | `client.homeWithMasters` | Ваши мастера — запишитесь снова в одно касание. К новому мастеру — по его ссылке. | Sizning ustalaringiz — bir bosishda qayta yoziling. Yangi ustaga — uning havolasi orqali. |
 | `client.bookAt` | 📅 Записаться: {name} | 📅 Yozilish: {name} |

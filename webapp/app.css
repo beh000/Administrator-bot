@@ -177,6 +177,13 @@ h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: v
 .field textarea:focus { outline: 2px solid var(--accent); }
 .field input[type="date"] { -webkit-appearance: none; appearance: none; text-align: center; font-weight: 600; }
 
+/* --- Клиент --- */
+.gallery { display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 -16px 14px; padding: 0 16px; scrollbar-width: none; }
+.gallery::-webkit-scrollbar { display: none; }
+.gallery img { flex: 0 0 62%; max-width: 280px; aspect-ratio: 1; object-fit: cover; border-radius: var(--radius); background: var(--card); scroll-snap-align: center; }
+.back { color: var(--link); font-size: 15px; margin: 0 0 10px; padding: 4px 0; }
+.about { margin: 0 0 12px; white-space: pre-line; }
+
 /* --- Картинки --- */
 .shot { display: block; width: 100%; max-height: 45vh; object-fit: contain; border-radius: var(--radius); background: var(--card); min-height: 120px; margin-bottom: 8px; }
 .phgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }

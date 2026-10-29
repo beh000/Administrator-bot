@@ -2,12 +2,12 @@
 // Деньги идут напрямую на карту мастера; бот только передаёт скриншот мастеру.
 const { Composer, InlineKeyboard } = require('grammy');
 const { Booking, Master } = require('../../models');
-const { t } = require('../../locales');
 const { formatCard } = require('../../utils/validate');
 const { submitScreenshot, latestAwaitingPayment } = require('../../services/payments');
 const { defineStep, setStep, clearStep } = require('../steps');
 const { show, prompt, alert, esc, fmtMoney, fmtDay, fmtTime } = require('../ui');
 const { addressLine } = require('../location');
+const { sendScreenshotToMaster } = require('./masterNotify');
 
 const composer = new Composer();
 
@@ -43,24 +43,7 @@ async function handleScreenshot(ctx, bookingId, fileId) {
   await ctx.reply(ctx.t('client.screenshotSent'));
   if (!master) return undefined;
 
-  const lang = master.language;
-  const caption = t(lang, 'pm.review', {
-    client: esc(ctx.user.name),
-    phone: esc(ctx.user.phone),
-    service: esc(booking.serviceTitle),
-    date: fmtDay((k) => t(lang, k), booking.start),
-    time: fmtTime(booking.start),
-    amount: fmtMoney(booking.prepaymentAmount),
-  });
-  const kb = new InlineKeyboard()
-    .text(t(lang, 'pm.okBtn'), `pm:ok:${booking._id}`)
-    .text(t(lang, 'pm.noBtn'), `pm:no:${booking._id}`);
-  try {
-    // тем же ботом, по file_id — файл не скачивается
-    await ctx.api.sendPhoto(master.telegramId, fileId, { caption, parse_mode: 'HTML', reply_markup: kb });
-  } catch (err) {
-    console.error(`[payment] Не удалось отправить скриншот мастеру ${master.telegramId}:`, err.description || err.message);
-  }
+  await sendScreenshotToMaster(ctx.api, master, ctx.user, booking, fileId);
   return undefined;
 }
 

@@ -113,7 +113,10 @@ async function inviteFor(master, b, botUsername) {
 // --- Обработчики. ctx: { master, query, body, params, api, botUsername } ---
 
 const routes = [];
+// Маршруты мастера (нужен зарегистрированный мастер)
 const route = (method, pattern, handler) => routes.push({ method, pattern, handler });
+// Маршруты клиента (/api/c/*): любой пользователь Telegram
+const clientRoute = (method, pattern, handler) => routes.push({ method, pattern, handler, client: true });
 
 route('GET', /^\/api\/me$/, async ({ master, botUsername }) => ({
   name: master.name,
@@ -315,14 +318,19 @@ route('GET', /^\/api\/stats$/, async ({ master, query }) => {
 
 require('./settings')(route, fail);
 require('./extras')(route, fail);
+require('./client')(clientRoute, fail);
 
 // Найти мастера по пользователю Telegram и выполнить маршрут
-async function handle({ method, path, query, body, tgUser, api, botUsername }) {
+async function handle({ method, path, query, body, tgUser, api, botUsername, initData }) {
   const r = routes.find((x) => x.method === method && x.pattern.test(path));
   if (!r) fail(404, 'not_found');
+  const params = r.pattern.exec(path).slice(1);
+  if (r.client) {
+    const client = await require('./client').ensureClient(tgUser);
+    return r.handler({ client, tgUser, query, body: body || {}, params, api, botUsername, initData });
+  }
   const master = await Master.findOne({ telegramId: tgUser.id, registered: true });
   if (!master) fail(403, 'not_master');
-  const params = r.pattern.exec(path).slice(1);
   return r.handler({ master, query, body: body || {}, params, api, botUsername });
 }
 

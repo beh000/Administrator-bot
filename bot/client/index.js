@@ -4,18 +4,18 @@
 const { Composer, InlineKeyboard, Keyboard } = require('grammy');
 const { Master } = require('../../models');
 const { atLocal, local, now: nowTz } = require('../../utils/time');
-const { t } = require('../../locales');
 const { parseName, parsePhone } = require('../../utils/validate');
 const { availableDates, freeSlots } = require('../../services/slots');
 const { createBooking, needsPrepayment, MAX_UPCOMING_PER_MASTER } = require('../../services/booking');
 const { canAcceptBookings } = require('../../services/subscription');
 const { defineStep, setStep, clearStep } = require('../steps');
 const { show, prompt, alert, esc, fmtMoney, fmtDay, fmtTime, BASE_OPTS } = require('../ui');
-const { sendTo } = require('../notify');
 const my = require('./my');
 const { addressLine, sendMasterLocation } = require('../location');
 const { ratingLine } = require('../reviews');
 const payment = require('./payment');
+const { notifyMasterBooked } = require('./masterNotify');
+const { config } = require('../../config');
 
 const composer = new Composer();
 
@@ -118,6 +118,8 @@ function showServices(ctx, master, opts = {}) {
     return show(ctx, ctx.t('client.noServices', { name: esc(master.name), phone: esc(master.phone) }), undefined, opts);
   }
   const kb = new InlineKeyboard();
+  // та же запись в мини-приложении: фото, календарь, всё на одном экране
+  if (config.WEBAPP_URL) kb.webApp(ctx.t('client.openApp'), `${config.WEBAPP_URL}/?m=${master.slug}`).row();
   services.forEach((s) => {
     kb.text(ctx.t('client.serviceBtn', { title: s.title, duration: s.durationMin, price: fmtMoney(s.price) }), `c:s:${s.id}`).row();
   });
@@ -270,25 +272,7 @@ composer.callbackQuery(/^c:ok:(\w+):(\d+)$/, async (ctx) => {
   await sendMasterLocation(ctx.api, ctx.chat.id, master);
 
   // Уведомление мастеру — на его языке
-  const lang = master.language;
-  const notifyParams = {
-    client: esc(ctx.user.name),
-    phone: esc(ctx.user.phone),
-    service: esc(service.title),
-    date: fmtDay((k) => t(lang, k), booking.start),
-    time: fmtTime(booking.start),
-    price: fmtMoney(booking.price),
-  };
-  if (previous) {
-    notifyParams.oldDate = fmtDay((k) => t(lang, k), previous.start);
-    notifyParams.oldTime = fmtTime(previous.start);
-  }
-  const masterKb = new InlineKeyboard()
-    .text(t(lang, 'notify.openBtn'), `mb:v:${booking._id}`)
-    .url(t(lang, 'notify.writeBtn'), `tg://user?id=${ctx.from.id}`);
-  return sendTo(ctx.api, master.telegramId, lang, previous ? 'notify.rescheduled' : 'notify.newBooking', notifyParams, {
-    reply_markup: masterKb,
-  });
+  return notifyMasterBooked(ctx.api, master, ctx.user, booking, previous);
 });
 
 async function home(ctx) {
@@ -303,6 +287,19 @@ async function home(ctx) {
   if (ctx.master) kb.text(ctx.t('role.master'), 'role:master');
   return show(ctx, ctx.t(masters.length ? 'client.homeWithMasters' : 'client.home'), kb);
 }
+
+// Номер, которым клиент поделился из мини-приложения (WebApp.requestContact),
+// приходит и в чат. Свой номер сохраняем молча — отвечать тут нечего.
+composer.on('message:contact', async (ctx, next) => {
+  const c = ctx.message.contact;
+  if (ctx.session.step || c.user_id !== ctx.from.id) return next();
+  const phone = parsePhone(c.phone_number);
+  if (!phone) return next();
+  ctx.user.phone = phone;
+  ctx.user.phoneVerified = true;
+  await ctx.user.save();
+  return undefined;
+});
 
 composer.use(my.composer);
 composer.use(payment.composer);
