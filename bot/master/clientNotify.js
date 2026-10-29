@@ -4,7 +4,7 @@ const { InlineKeyboard } = require('grammy');
 const { t } = require('../../locales');
 const { esc, fmtDay, fmtTime } = require('../ui');
 const { sendTo } = require('../notify');
-const { addressLine } = require('../location');
+const { addressLine, sendMasterLocation } = require('../location');
 
 const trOf = (lang) => (k, p) => t(lang, k, p);
 
@@ -70,4 +70,26 @@ async function notifyMoved(api, master, b, oldStart) {
   });
 }
 
-module.exports = { notifyBooked, notifyCancelled, notifyMoved };
+// Мастер проверил скриншот предоплаты. client — документ Client
+async function notifyPayment(api, master, client, booking, approved) {
+  if (!client?.telegramId) return;
+  const lang = client.language;
+  const tr = trOf(lang);
+  await sendTo(
+    api,
+    client.telegramId,
+    lang,
+    approved ? 'client.paymentApproved' : 'client.paymentRejected',
+    {
+      master: esc(master.name),
+      phone: esc(master.phone),
+      service: esc(booking.serviceTitle),
+      date: fmtDay(tr, booking.start),
+      time: fmtTime(booking.start),
+    },
+    { append: approved ? addressLine(tr, master) : '' },
+  );
+  if (approved) await sendMasterLocation(api, client.telegramId, master);
+}
+
+module.exports = { notifyBooked, notifyCancelled, notifyMoved, notifyPayment };

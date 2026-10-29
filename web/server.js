@@ -8,6 +8,8 @@ const { handle, ApiError } = require('./api');
 
 const STATIC_DIR = path.join(__dirname, '..', 'webapp');
 const MAX_BODY = 16 * 1024;
+const MAX_IMAGE = 8 * 1024 * 1024; // фото работ, скриншоты оплаты
+const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -28,13 +30,17 @@ function sendJson(res, status, data) {
   res.end(body);
 }
 
+// JSON — до 16 КБ; картинка (Content-Type: image/*) — до 8 МБ, как есть
 function readBody(req) {
+  const type = String(req.headers['content-type'] || '').split(';')[0].trim();
+  const isImage = IMAGE_TYPES.includes(type);
+  const limit = isImage ? MAX_IMAGE : MAX_BODY;
   return new Promise((resolve, reject) => {
     let size = 0;
     const chunks = [];
     req.on('data', (c) => {
       size += c.length;
-      if (size > MAX_BODY) {
+      if (size > limit) {
         // дальше не копим, но дочитываем — иначе клиент не получит ответ
         req.removeAllListeners('data');
         req.resume();
@@ -44,7 +50,8 @@ function readBody(req) {
       chunks.push(c);
     });
     req.on('end', () => {
-      if (size > MAX_BODY) return undefined;
+      if (size > limit) return undefined;
+      if (isImage) return resolve({ file: { buffer: Buffer.concat(chunks), type } });
       if (!chunks.length) return resolve({});
       try {
         const data = JSON.parse(Buffer.concat(chunks).toString('utf8'));
@@ -108,6 +115,11 @@ function createServer({ botToken, api, getBotUsername, onError = () => {} }) {
         api,
         botUsername: getBotUsername(),
       });
+      // файл (фото, QR) — отдаём как есть
+      if (data && Buffer.isBuffer(data.binary)) {
+        res.writeHead(200, { ...SECURITY_HEADERS, 'Content-Type': data.type || 'application/octet-stream', 'Cache-Control': 'private, max-age=3600' });
+        return res.end(data.binary);
+      }
       return sendJson(res, 200, data);
     } catch (err) {
       if (err instanceof ApiError) return sendJson(res, err.status, { error: err.code });

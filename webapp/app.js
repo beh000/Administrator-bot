@@ -87,6 +87,85 @@
     return data;
   }
 
+  // Картинка с сервера (нужна подпись, поэтому не <img src>, а blob)
+  const imgCache = new Map();
+  async function apiImage(path) {
+    if (imgCache.has(path)) return imgCache.get(path);
+    const res = await fetch(path, { headers: { Authorization: `tma ${tg?.initData || ''}` } });
+    if (!res.ok) throw Object.assign(new Error('image'), { code: 'server_error' });
+    const url = URL.createObjectURL(await res.blob());
+    imgCache.set(path, url);
+    return url;
+  }
+  async function loadImages(root = document) {
+    for (const img of root.querySelectorAll('img[data-src]')) {
+      const src = img.dataset.src;
+      img.removeAttribute('data-src');
+      apiImage(src).then((url) => { img.src = url; }).catch(() => img.classList.add('broken'));
+    }
+  }
+
+  // Сжать фото перед отправкой: до 1600 px по длинной стороне, JPEG
+  function compressImage(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const k = Math.min(1, 1600 / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * k);
+        c.height = Math.round(img.height * k);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        c.toBlob((b) => (b ? resolve(b) : reject(new Error('compress'))), 'image/jpeg', 0.85);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(Object.assign(new Error('bad image'), { code: 'need_image' }));
+      };
+      img.src = url;
+    });
+  }
+
+  async function apiUpload(path, file) {
+    const blob = await compressImage(file);
+    let res;
+    try {
+      res = await fetch(path, { method: 'POST', headers: { Authorization: `tma ${tg?.initData || ''}`, 'Content-Type': 'image/jpeg' }, body: blob });
+    } catch {
+      throw Object.assign(new Error('network'), { code: 'network' });
+    }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw Object.assign(new Error(data.error || 'server_error'), { code: data.error || 'server_error', status: res.status });
+    return data;
+  }
+
+  // Выбрать файл(ы) с телефона
+  function pickFiles({ multiple = false } = {}) {
+    return new Promise((resolve) => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.multiple = multiple;
+      input.onchange = () => resolve([...(input.files || [])]);
+      input.click();
+    });
+  }
+
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast(state.L.copied);
+    } catch {
+      window.prompt('', text);
+    }
+  }
+
+  function openLink(url) {
+    if (tg?.openLink) tg.openLink(url);
+    else window.open(url, '_blank');
+  }
+
   // --- Нижний лист (детали, формы) ---
   const sheet = {
     open(html) {
@@ -199,6 +278,10 @@
       [L.statusLabel, `${L.status[b.status] || b.status} · ${c.inBot ? `🤖 ${L.inBot}` : `✍️ ${L.manual}`}`],
     ].filter(Boolean);
     const btns = [];
+    if (b.canReviewPayment) {
+      btns.push(`<div class="btnrow" style="margin:0 0 8px"><button class="btn ok" data-act="payok" data-id="${b.id}">✅ ${h(L.payOk)}</button><button class="btn danger" data-act="payno" data-id="${b.id}">❌ ${h(L.payNo)}</button></div>
+        <h3>${h(L.payCheck)}</h3><img class="shot" data-src="/api/bookings/${b.id}/screenshot" alt="">`);
+    }
     if (b.canMark) {
       btns.push(`<div class="btnrow"><button class="btn ok" data-act="came" data-id="${b.id}">✅ ${h(L.came)}</button><button class="btn danger" data-act="noshow" data-id="${b.id}">🚫 ${h(L.noShow)}</button></div>`);
     }
@@ -211,6 +294,7 @@
     sheet.open(`${sheetTop(c.name || L.client)}
       <div class="kv">${rows.map(([k, v]) => `<div class="r"><span>${h(k)}</span><span>${h(v)}</span></div>`).join('')}</div>
       ${btns.join('')}`);
+    loadImages($('#sheet'));
   }
 
   async function cancelBooking(id) {
@@ -222,6 +306,21 @@
       await api(`/api/bookings/${id}/cancel`, { method: 'POST' });
       haptic('success');
       toast(b.kind === 'block' ? L.unblocked : L.cancelled);
+    } catch (err) {
+      haptic('error');
+      toast(errText(err));
+    }
+    sheet.close();
+    await refreshCalendar();
+  }
+
+  async function reviewPayment(id, approved) {
+    const L = state.L;
+    if (!(await confirmBox(approved ? L.payConfirmOk : L.payConfirmNo))) return;
+    try {
+      await api(`/api/bookings/${id}/payment`, { method: 'POST', body: { approved } });
+      haptic('success');
+      toast(approved ? L.payDoneOk : L.payDoneNo);
     } catch (err) {
       haptic('error');
       toast(errText(err));
@@ -584,7 +683,7 @@
         <div class="row"><span class="grow ttl">${h(L.noShowsStat)}</span><span class="val">${c.noShows}${c.noShowRate ? ` <span class="hint small">(${c.noShowRate}%)</span>` : ''}</span></div>
         <div class="row"><span class="grow ttl">${h(L.cancelledStat)}</span><span class="val">${c.cancelled}</span></div>
         <div class="row"><span class="grow ttl">${h(L.viaBot)}</span><span class="val">${c.viaBot}</span></div>
-        ${r ? `<div class="row"><span class="grow"><span class="ttl">${h(L.rating)}</span><span class="hint small">${h(fill(L.reviews, { n: r.count }))}</span></span><span class="val">⭐ ${r.avg}</span></div>` : ''}
+        ${r ? `<button class="row" data-act="reviews"><span class="grow"><span class="ttl">${h(L.rating)}</span><span class="hint small">${h(fill(L.reviews, { n: r.count }))}</span></span><span class="val">⭐ ${r.avg}</span><span class="hint">›</span></button>` : ''}
       </div>
       ${!c.visits && !c.upcoming && !c.noShows ? `<div class="empty">${h(L.statsEmpty)}</div>` : ''}`;
   }
@@ -674,9 +773,10 @@
       <h3>${h(L.groupClients)}</h3>
       <div class="list">
         ${row('about', '📝', L.about, S.about || L.aboutEmpty)}
-        ${row('address', '📍', L.address, S.address || (S.hasGeo ? L.geoSet : L.notSet))}
+        ${row('address', '📍', L.address, [S.address, S.hasGeo ? L.geoSet : ''].filter(Boolean).join(' · ') || L.notSet)}
         ${row('photos', '🖼', L.photos, fill(L.photosN, { n: S.photos }))}
         ${row('link', '🔗', L.link, S.link.replace('https://', ''))}
+        ${row('referral', '🎁', L.refTitle, L.refRow)}
       </div>
       <h3>${h(L.groupAccount)}</h3>
       <div class="list">
@@ -872,15 +972,13 @@
     if (await saveSettings('/api/settings/prepayment', body)) openPrepay();
   }
 
+  // Описание для клиентов
   function openText(kind) {
     const L = SL();
     edit = { kind };
-    const isAbout = kind === 'about';
-    sheet.open(`${sheetTop(isAbout ? L.about : L.address)}
-      <div class="note">${h(isAbout ? L.aboutHint : L.addressHint)}</div>
-      ${isAbout
-        ? `<label class="field"><textarea id="txt" maxlength="500" rows="6">${h(S.about)}</textarea></label>`
-        : `<label class="field"><input id="txt" maxlength="200" value="${h(S.address)}"></label>${S.hasGeo ? `<div class="hint small" style="margin:-4px 4px 10px">📍 ${h(L.geoSet)}</div>` : ''}`}
+    sheet.open(`${sheetTop(L.about)}
+      <div class="note">${h(L.aboutHint)}</div>
+      <label class="field"><textarea id="txt" maxlength="500" rows="6">${h(S.about)}</textarea></label>
       <div id="serr"></div>
       <button class="btn block" data-s="textsave">${h(L.save)}</button>`);
   }
@@ -893,16 +991,237 @@
     }
   }
 
+  function openTelegram(url) {
+    if (tg?.openTelegramLink) tg.openTelegramLink(url);
+    else window.open(url, '_blank');
+  }
+
+  // Адрес текстом + точка на карте
+  function openAddress(note) {
+    const L = SL();
+    edit = { kind: 'address' };
+    const geo = S.geo;
+    sheet.open(`${sheetTop(L.address)}
+      ${note ? `<div class="note">${h(note)}</div>` : ''}
+      <label class="field"><span>${h(L.addressText)}</span><input id="txt" maxlength="200" value="${h(S.address)}" placeholder="${h(L.addressPh)}"></label>
+      <button class="btn block" data-s="addrsave">${h(L.save)}</button>
+      <h3>${h(L.geoTitle)}</h3>
+      ${geo ? `<div class="list"><div class="row"><span class="grow"><span class="ttl">📍 ${h(L.geoSet)}</span><span class="hint small">${geo.lat.toFixed(5)}, ${geo.lng.toFixed(5)}</span></span></div></div>
+        <div class="btnrow"><button class="btn sec" data-s="geoopen">🗺 ${h(L.geoOpen)}</button><button class="btn danger" data-s="geoclear">${h(L.geoClear)}</button></div>` : `<div class="note">${h(L.geoHint)}</div>`}
+      <div class="btnrow"><button class="btn sec" data-s="geome">📍 ${h(L.geoMe)}</button></div>
+      <label class="field" style="margin-top:12px"><span>${h(L.geoLinkLabel)}</span><input id="geolink" placeholder="https://maps.google.com/…"></label>
+      <div id="serr"></div>
+      <button class="btn sec block" data-s="geolink">${h(L.geoLinkSave)}</button>`);
+  }
+
+  async function saveAddress() {
+    if (await saveSettings('/api/settings/profile', { address: $('#txt').value })) openAddress();
+  }
+
+  async function saveGeo(body) {
+    if (await saveSettings('/api/settings/geo', body)) openAddress();
+  }
+
+  function geoFromPhone() {
+    const L = SL();
+    const done = (lat, lng) => saveGeo({ lat, lng });
+    const failed = () => {
+      const box = $('#serr');
+      if (box) box.innerHTML = `<div class="note err">${h(L.geoFailed)}</div>`;
+    };
+    // Telegram (Bot API 8.0+) — свой запрос доступа к геопозиции; иначе — браузерный
+    const lm = tg?.LocationManager;
+    if (lm && tg.isVersionAtLeast?.('8.0')) {
+      const ask = () => lm.getLocation((loc) => (loc ? done(loc.latitude, loc.longitude) : failed()));
+      if (lm.isInited) ask();
+      else lm.init(ask);
+      return;
+    }
+    if (!navigator.geolocation) return failed();
+    navigator.geolocation.getCurrentPosition((p) => done(p.coords.latitude, p.coords.longitude), failed, { enableHighAccuracy: true, timeout: 15000 });
+  }
+
+  function geoFromLink() {
+    const text = $('#geolink').value.trim();
+    if (!text) return;
+    saveGeo({ text });
+  }
+
+  async function geoClear() {
+    if (await confirmBox(SL().geoClearConfirm)) saveGeo({ clear: true });
+  }
+
+  // Фото работ: сетка, удалить, добавить с телефона
+  function openPhotos(busy) {
+    const L = SL();
+    edit = { kind: 'photos' };
+    const n = S.photos;
+    const cells = Array.from({ length: n }, (_, i) => `<div class="ph"><img data-src="/api/photos/${i}?v=${S.photosV || 0}" alt=""><button class="x" data-s="photodel" data-id="${i}">✕</button></div>`).join('');
+    sheet.open(`${sheetTop(L.photos)}
+      <div class="note">${h(L.photosAbout)}</div>
+      ${n ? `<div class="phgrid">${cells}</div>` : ''}
+      <div id="serr"></div>
+      ${busy ? loading : n < 6 ? `<button class="btn block" data-s="photoadd">＋ ${h(fill(L.photosAdd, { n: 6 - n }))}</button>` : `<div class="hint small" style="text-align:center">${h(L.photosFull)}</div>`}`);
+    loadImages($('#sheet'));
+  }
+
+  async function addPhotos() {
+    const files = (await pickFiles({ multiple: true })).slice(0, 6 - S.photos);
+    if (!files.length) return;
+    openPhotos(true);
+    for (const f of files) {
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        const r = await apiUpload('/api/photos', f);
+        S.photos = r.photos;
+      } catch (err) {
+        haptic('error');
+        toast(setErr(err));
+        break;
+      }
+    }
+    S.photosV = Date.now();
+    imgCache.clear();
+    haptic('success');
+    openPhotos();
+  }
+
+  async function delPhoto(i) {
+    if (!(await confirmBox(SL().photoDelConfirm))) return;
+    try {
+      const r = await api(`/api/photos/${i}/delete`, { method: 'POST' });
+      S.photos = r.photos;
+      S.photosV = Date.now();
+      imgCache.clear();
+      haptic('success');
+    } catch (err) {
+      toast(setErr(err));
+    }
+    openPhotos();
+  }
+
+  // Ссылка: отправить, скопировать, текст для Instagram, QR
+  async function openLinkSheet() {
+    const L = SL();
+    sheet.open(`${sheetTop(L.link)}${loading}`);
+    let promo = '';
+    try {
+      promo = (await api('/api/promo')).promo;
+    } catch { /* без готового текста */ }
+    sheet.open(`${sheetTop(L.link)}
+      <div class="note">${h(L.linkHint)}</div>
+      <div class="code">${h(S.link)}</div>
+      <div class="btnrow"><button class="btn" data-s="sharelink">${h(state.L.send)}</button><button class="btn sec" data-s="copylink">${h(L.copyShort)}</button></div>
+      ${promo ? `<h3>${h(L.promoTitle)}</h3><div class="code">${h(promo)}</div><button class="btn sec block" data-s="copypromo" data-text="${h(promo)}">${h(state.L.copy)}</button>` : ''}
+      <h3>${h(L.qrTitle)}</h3>
+      <div class="qrbox"><img data-src="/api/qr" alt="QR"></div>
+      <div class="hint small" style="text-align:center;margin:8px 0">${h(L.qrHint)}</div>
+      <button class="btn sec block" data-s="qrsend">${h(L.qrSend)}</button>`);
+    loadImages($('#sheet'));
+  }
+
+  async function sendQr() {
+    try {
+      await api('/api/qr/send', { method: 'POST' });
+      haptic('success');
+      toast(SL().qrSent);
+    } catch (err) {
+      toast(setErr(err));
+    }
+  }
+
+  // Пригласить мастера
+  async function openReferral() {
+    const L = SL();
+    sheet.open(`${sheetTop(L.refTitle)}${loading}`);
+    let r;
+    try {
+      r = await api('/api/referral');
+    } catch (err) {
+      sheet.open(`${sheetTop(L.refTitle)}<div class="note err">${h(errText(err))}</div>`);
+      return;
+    }
+    sheet.open(`${sheetTop(L.refTitle)}
+      <div class="note">${h(fill(L.refHow, { days: r.trialDays, bonus: r.bonus, reward: r.reward }))}</div>
+      <div class="tiles" style="margin-bottom:12px">
+        <div class="tile"><div class="lbl">${h(L.refJoined)}</div><div class="num">${r.joined}</div></div>
+        <div class="tile"><div class="lbl">${h(L.refPaid)}</div><div class="num">${r.paid}</div></div>
+      </div>
+      <div class="code">${h(r.link)}</div>
+      <div class="btnrow"><button class="btn" data-s="shareref" data-url="${h(r.shareUrl)}">${h(state.L.send)}</button><button class="btn sec" data-s="copyref" data-text="${h(r.link)}">${h(L.copyShort)}</button></div>`);
+  }
+
+  // Подписка: статус, реквизиты, скриншот оплаты
+  async function openSubscription(note) {
+    const L = SL();
+    sheet.open(`${sheetTop(L.subscription)}${loading}`);
+    let sub;
+    try {
+      sub = await api('/api/subscription');
+    } catch (err) {
+      sheet.open(`${sheetTop(L.subscription)}<div class="note err">${h(errText(err))}</div>`);
+      return;
+    }
+    const until = sub.paidUntil ? fmtDate(keyOf(sub.paidUntil)) : '—';
+    const status = sub.status === 'expired' ? L.subExpired : fill(sub.status === 'trial' ? L.subTrial : L.subActive, { date: until });
+    const card = sub.card.replace(/(\d{4})(?=\d)/g, '$1 ');
+    sheet.open(`${sheetTop(L.subscription)}
+      ${note ? `<div class="note">${h(note)}</div>` : ''}
+      <div class="kv">
+        <div class="r"><span>${h(L.subStatus)}</span><span>${h(status)}</span></div>
+        ${sub.status !== 'expired' ? `<div class="r"><span>${h(L.subLeft)}</span><span>${sub.daysLeft}</span></div>` : ''}
+        <div class="r"><span>${h(L.subPrice)}</span><span>${money(sub.price)} ${h(state.L.sum)} / ${sub.periodDays} ${h(L.daysShort)}</span></div>
+      </div>
+      ${sub.pending ? `<div class="note">⏳ ${h(L.subPending)}</div>` : ''}
+      ${sub.card ? `<h3>${h(L.subHowTitle)}</h3>
+        <div class="note">${h(fill(L.subHow, { price: money(sub.price) }))}</div>
+        <div class="code">${h(card)}<br><span class="hint">${h(sub.cardHolder)}</span></div>
+        <button class="btn sec block" data-s="copycard" data-text="${h(sub.card)}">${h(L.copyCard)}</button>
+        <div id="serr"></div>
+        <div class="btnrow"><button class="btn" data-s="subpay">📎 ${h(sub.pending ? L.subPayAgain : L.subPay)}</button></div>` : `<div class="note err">${h(L.errors.no_card)}</div>`}`);
+  }
+
+  async function paySubscription() {
+    const [file] = await pickFiles();
+    if (!file) return;
+    const btn = $('[data-s="subpay"]');
+    if (btn) btn.disabled = true;
+    try {
+      await apiUpload('/api/subscription/pay', file);
+      haptic('success');
+      openSubscription(SL().subSent);
+    } catch (err) {
+      haptic('error');
+      if (btn) btn.disabled = false;
+      const box = $('#serr');
+      if (box) box.innerHTML = `<div class="note err">${h(setErr(err))}</div>`;
+    }
+  }
+
+  // Отзывы клиентов (из статистики)
+  async function openReviews() {
+    const L = state.L;
+    sheet.open(`${sheetTop(L.reviewsTitle)}${loading}`);
+    let r;
+    try {
+      r = await api('/api/reviews');
+    } catch (err) {
+      sheet.open(`${sheetTop(L.reviewsTitle)}<div class="note err">${h(errText(err))}</div>`);
+      return;
+    }
+    const items = r.items
+      .map((x) => `<div class="row"><span class="grow"><span class="ttl">${'⭐'.repeat(x.rating)} <span class="hint small">${h(x.client)} · ${h(x.date)}</span></span>${x.comment ? `<span class="small">«${h(x.comment)}»</span>` : ''}</span></div>`)
+      .join('');
+    sheet.open(`${sheetTop(L.reviewsTitle)}
+      ${r.count ? `<div class="tiles" style="grid-template-columns:1fr;margin-bottom:12px"><div class="tile"><div class="lbl">${h(L.rating)}</div><div class="num">⭐ ${r.avg} <small>${h(fill(L.reviews, { n: r.count }))}</small></div></div></div>` : ''}
+      ${items ? `<div class="list">${items}</div>` : `<div class="empty">${h(L.reviewsEmpty)}</div>`}`);
+  }
+
   function openInfo(kind) {
     const L = SL();
-    if (kind === 'photos') return sheet.open(`${sheetTop(L.photos)}<div class="note">${h(L.photosHint)}</div>`);
-    if (kind === 'sub') return sheet.open(`${sheetTop(L.subscription)}<div class="note">${h(L.subHint)}</div>`);
-    if (kind === 'link') {
-      state.invite = { text: S.link, shareUrl: `https://t.me/share/url?url=${encodeURIComponent(S.link)}` };
-      return sheet.open(`${sheetTop(L.link)}<div class="note">${h(L.linkHint)}</div><div class="code">${h(S.link)}</div>
-        <button class="btn block" data-act="share">${h(state.L.send)}</button>
-        <div class="btnrow"><button class="btn sec" data-act="copy">${h(state.L.copy)}</button></div>`);
-    }
+    if (kind === 'photos') return openPhotos();
+    if (kind === 'sub') return openSubscription();
+    if (kind === 'link') return openLinkSheet();
     if (kind === 'lang') {
       return sheet.open(`${sheetTop(L.language)}<div class="list">
         ${[['ru', 'Русский'], ['uz', 'Oʻzbekcha']].map(([code, name]) => `<button class="row" data-s="setlang" data-id="${code}"><span class="grow ttl">${name}</span>${S.lang === code ? '<span>✓</span>' : ''}</button>`).join('')}</div>`);
@@ -955,8 +1274,24 @@
       case 'prepay': return openPrepay();
       case 'pptoggle': return savePrepay(!S.prepayment.enabled);
       case 'ppsave': return savePrepay();
-      case 'about':
-      case 'address': return openText(s);
+      case 'about': return openText(s);
+      case 'address': return openAddress();
+      case 'addrsave': return saveAddress();
+      case 'geome': return geoFromPhone();
+      case 'geolink': return geoFromLink();
+      case 'geoclear': return geoClear();
+      case 'geoopen': return openLink(`https://maps.google.com/?q=${S.geo.lat},${S.geo.lng}`);
+      case 'photoadd': return addPhotos();
+      case 'photodel': return delPhoto(Number(id));
+      case 'qrsend': return sendQr();
+      case 'copylink': return copyText(S.link);
+      case 'copypromo': return copyText(t.dataset.text);
+      case 'sharelink': return openTelegram(`https://t.me/share/url?url=${encodeURIComponent(S.link)}`);
+      case 'shareref': return openTelegram(t.dataset.url);
+      case 'copyref': return copyText(t.dataset.text);
+      case 'copycard': return copyText(t.dataset.text);
+      case 'subpay': return paySubscription();
+      case 'referral': return openReferral();
       case 'textsave': return saveText();
       case 'photos':
       case 'sub':
@@ -1032,6 +1367,9 @@
       case 'move': return startMove(d.id);
       case 'came': return markVisit(d.id, true);
       case 'noshow': return markVisit(d.id, false);
+      case 'reviews': return openReviews();
+      case 'payok': return reviewPayment(d.id, true);
+      case 'payno': return reviewPayment(d.id, false);
       case 'invite': return showInvite(d.id);
       case 'share': return share();
       case 'copy': return copyInvite();

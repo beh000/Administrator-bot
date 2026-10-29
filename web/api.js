@@ -68,6 +68,7 @@ function bookingDto(b, now = new Date()) {
     canCancel: active && future,
     canMark: isBooking && b.status === 'confirmed' && new Date(b.start) <= now,
     canInvite: isBooking && !b.clientId && active && future,
+    canReviewPayment: b.status === 'payment_review' && Boolean(b.paymentScreenshotFileId),
   };
 }
 
@@ -313,6 +314,7 @@ route('GET', /^\/api\/stats$/, async ({ master, query }) => {
 });
 
 require('./settings')(route, fail);
+require('./extras')(route, fail);
 
 // Найти мастера по пользователю Telegram и выполнить маршрут
 async function handle({ method, path, query, body, tgUser, api, botUsername }) {

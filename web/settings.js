@@ -22,6 +22,32 @@ function toRanges(sorted) {
   return out;
 }
 
+// Координаты из ссылки Google/Яндекс Карт или из текста «41.31, 69.27»
+function parseCoords(text) {
+  let s = String(text || '').slice(0, 2000);
+  try {
+    s = decodeURIComponent(s);
+  } catch {
+    // битый %-код — разбираем как есть
+  }
+  // Яндекс: ?ll=69.27,41.31 или pt=69.27,41.31 — сначала долгота
+  const y = /[?&](?:ll|pt|whatshere%5Bpoint%5D|whatshere\[point\])=(-?\d{1,3}\.\d+),\s*(-?\d{1,2}\.\d+)/.exec(s);
+  if (y && /yandex|ya\.ru/.test(s)) return { lat: Number(y[2]), lng: Number(y[1]) };
+  const patterns = [
+    /@(-?\d{1,2}\.\d+),\s*(-?\d{1,3}\.\d+)/, // google.com/maps/@41.3,69.2,15z
+    /[?&](?:q|query|ll|destination)=(-?\d{1,2}\.\d+),\s*(-?\d{1,3}\.\d+)/, // ?q=41.3,69.2
+    /!3d(-?\d{1,2}\.\d+)!4d(-?\d{1,3}\.\d+)/, // google place
+    /^\s*(-?\d{1,2}\.\d+)\s*[,;\s]\s*(-?\d{1,3}\.\d+)\s*$/, // просто координаты
+  ];
+  for (const re of patterns) {
+    const m = re.exec(s);
+    if (m) return { lat: Number(m[1]), lng: Number(m[2]) };
+  }
+  return null;
+}
+
+const validCoords = (c) => c && Number.isFinite(c.lat) && Number.isFinite(c.lng) && Math.abs(c.lat) <= 90 && Math.abs(c.lng) <= 180;
+
 function prepaymentReady(pp) {
   return pp.amount > 0 && Boolean(pp.cardNumber) && Boolean(pp.cardHolder);
 }
@@ -49,11 +75,12 @@ function settingsDto(master, botUsername) {
     photos: (master.photos || []).length,
     address: master.location?.address || '',
     hasGeo: Number.isFinite(master.location?.lat) && Number.isFinite(master.location?.lng),
+    geo: Number.isFinite(master.location?.lat) ? { lat: master.location.lat, lng: master.location.lng } : null,
     subscription: { status: master.subscription?.status, paidUntil: master.subscription?.paidUntil },
   };
 }
 
-module.exports = function registerSettings(route, fail) {
+function registerSettings(route, fail) {
   const ok = (master, botUsername) => settingsDto(master, botUsername);
 
   route('GET', /^\/api\/settings$/, async ({ master, botUsername }) => ok(master, botUsername));
@@ -213,6 +240,21 @@ module.exports = function registerSettings(route, fail) {
     return ok(master, botUsername);
   });
 
+  // --- Точка на карте: { lat, lng } с телефона, { text } — ссылка/координаты, { clear: true } ---
+  route('POST', /^\/api\/settings\/geo$/, async ({ master, body, botUsername }) => {
+    if (body.clear === true) {
+      master.set('location.lat', undefined);
+      master.set('location.lng', undefined);
+    } else {
+      const c = body.text !== undefined ? parseCoords(body.text) : { lat: Number(body.lat), lng: Number(body.lng) };
+      if (!validCoords(c)) fail(400, 'bad_geo');
+      master.set('location.lat', c.lat);
+      master.set('location.lng', c.lng);
+    }
+    await master.save();
+    return ok(master, botUsername);
+  });
+
   // --- Язык (общий с ботом) ---
   route('POST', /^\/api\/settings\/language$/, async ({ master, body, botUsername }) => {
     if (!LANGS.includes(body.lang)) fail(400, 'bad_value');
@@ -221,4 +263,7 @@ module.exports = function registerSettings(route, fail) {
     await Client.updateOne({ telegramId: master.telegramId }, { $set: { language: body.lang } });
     return ok(master, botUsername);
   });
-};
+}
+
+module.exports = registerSettings;
+module.exports.parseCoords = parseCoords;

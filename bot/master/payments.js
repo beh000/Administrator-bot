@@ -1,11 +1,9 @@
 // Мастер проверяет скриншот предоплаты: «✅ Оплата получена» / «❌ Оплаты нет»
 const { Composer } = require('grammy');
 const { Client } = require('../../models');
-const { t } = require('../../locales');
 const { reviewPayment } = require('../../services/payments');
-const { alert, esc, fmtDay, fmtTime } = require('../ui');
-const { sendTo } = require('../notify');
-const { addressLine, sendMasterLocation } = require('../location');
+const { alert, esc } = require('../ui');
+const { notifyPayment } = require('./clientNotify');
 
 const composer = new Composer();
 
@@ -26,23 +24,7 @@ composer.callbackQuery(/^pm:(ok|no):([0-9a-f]{24})$/, async (ctx) => {
     .catch(() => {});
 
   const client = await Client.findById(booking.clientId);
-  if (!client) return undefined;
-  const lang = client.language;
-  await sendTo(
-    ctx.api,
-    client.telegramId,
-    lang,
-    approved ? 'client.paymentApproved' : 'client.paymentRejected',
-    {
-      master: esc(ctx.master.name),
-      phone: esc(ctx.master.phone),
-      service: esc(booking.serviceTitle),
-      date: fmtDay((k) => t(lang, k), booking.start),
-      time: fmtTime(booking.start),
-    },
-    { append: approved ? addressLine((k, p) => t(lang, k, p), ctx.master) : '' },
-  );
-  if (approved) await sendMasterLocation(ctx.api, client.telegramId, ctx.master);
+  await notifyPayment(ctx.api, ctx.master, client, booking, approved);
   return undefined;
 });
 
