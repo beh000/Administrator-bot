@@ -28,7 +28,7 @@ module.exports = {
   },
 
   role: {
-    choose: 'Siz kimsiz?\n\n<b>Usta</b> — mijozlarni qabul qilasiz va ular onlayn yozilishini xohlaysiz.\n<b>Mijoz</b> — ustaga yozilmoqchisiz.',
+    choose: '👋 Bu <b>Navbatchi</b> — Telegramda ustaga onlayn yozilish.\nMijozlar 24/7 oʻzi yoziladi, bot esa ularga tashrifni eslatadi — «boʻsh vaqt bormi?» yozishmalari va kelmay qolishlar kamayadi.\n\nSiz kimsiz?\n\n<b>Usta</b> — mijozlarni qabul qilasiz va ular onlayn yozilishini xohlaysiz.\n<b>Mijoz</b> — ustaga yozilmoqchisiz.',
     master: '💼 Men ustaman',
     client: '🙋 Men mijozman',
   },

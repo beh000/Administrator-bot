@@ -15,7 +15,7 @@ const config = {
   SUB_PRICE: num('SUB_PRICE', 50000),
   SUB_CARD: process.env.SUB_CARD || '',
   SUB_CARD_NAME: process.env.SUB_CARD_NAME || '',
-  TRIAL_DAYS: num('TRIAL_DAYS', 30),
+  TRIAL_DAYS: num('TRIAL_DAYS', 7),
   // Мини-приложение мастера: адрес сайта (Railway даёт домен в RAILWAY_PUBLIC_DOMAIN)
   WEBAPP_URL: (process.env.WEBAPP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : '')).replace(/\/+$/, ''),
   PORT: num('PORT', 3000),
